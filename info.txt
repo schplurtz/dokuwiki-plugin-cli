@@ -1,0 +1,9 @@
+# General Plugin Info do not edit
+
+author Chris P. Jobling; Stephan Chazelas; Andy Webber; schplurtz le déboulonné
+email  C.P.Jobling@Swansea.ac.uk
+date   2008-13-02
+name   Command Line Interface (CLI) Plugin
+desc   Renders transcripts of command line interactions, e.g. for shell and dynamic language interpretor tutorials
+url    http://www.cpjobling.org.uk/dokuwiki/plugins:cli
+
