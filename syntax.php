@@ -4,89 +4,96 @@
  *     Typeset transcripts of interactive sessions with mimumum effort.
  * Syntax:
  *     <cli prompt="$ " continue="> " comment="#">
+ *   or
+ *     <cli prompt="/^.*?[%$#>] /" continue="/^(?:|[^=]|..*?)> /" comment="#">
  *     user@host:~/somedir $ ls \
  *     > # List directory
  *     file1 file2
  *     </cli>
- *   prompt --- [optional] prompt character used. '$ ' is default - note the space.
- *   comment --- [optional] comment character used. '#' is default - note no space.
- *   continue --- [optional] regex of shell continuation '/^> /' is the default.
- *   The defaults above match Bourne shell ${PS1} and ${PS2} prompts and comment
+ *   prompt --- [optional] prompt character or regexp used. '/^.{0,30}?[>%$#] /' is default - note the space.
+ *   continue --- [optional] regex of shell continuation '/^.{0,30}?> /' is the default - note the space
+ *   comment --- [optional] comment character used. '/(^#)| #/' is default - note no space after #.
+ *   The defaults above match many cli defaults. Bourne shell ${PS1} and ${PS2} prompts and comment among others.
  *
  * Acknowledgements:
  *  Borrows heavily from the boxes plugin!
  *  Support for continuation added by Andy Webber
  *  Improved parsing added by Stephane Chazelas
- * 
+ *  proper <cli> nesting. regexp for prompt and comments, shortcuts, config options, French translation, better continuation by Schplurtz le Déboulonné.
+ *
  * @license    GPL 2 (http://www.gnu.org/licenses/gpl.html)
  * @author     Chris P. Jobling <C.P.Jobling@Swansea.ac.uk>
  */
- 
+
 if(!defined('DOKU_INC')) define('DOKU_INC',realpath(dirname(__FILE__).'/../../').'/');
 if(!defined('DOKU_PLUGIN')) define('DOKU_PLUGIN',DOKU_INC.'lib/plugins/');
 require_once(DOKU_PLUGIN.'syntax.php');
- 
+
 /**
  * All DokuWiki plugins to extend the parser/rendering mechanism
  * need to inherit from this class
  */
 class syntax_plugin_cli extends DokuWiki_Syntax_Plugin {
-    
-    var $prompt_str = '$ ';
-    var $prompt_cont = '/^> /'; // this is a regex
-    var $prompt_continues = false;
-    var $comment_str = '#';
-    
+
+    # prompt, continue and comment stack
+    var $stack=array(array('/^.{0,30}?[$%>#] /', '/^.{0,30}?> /', '/(^#)| #/'));
+    var $namedpcc=array();
+    var $initp=false;
+
+
+    # init not done in constructor on purpose
+    function init() {
+        $this->initp=true;
+        if(''!=$this->getConf('prompt')) $this->stack[0][0]=$this->_toregexp($this->getConf('prompt'));
+        if(''!=$this->getConf('continue')) $this->stack[0][1]=$this->_toregexp($this->getConf('continue'));
+        if(''!=$this->getConf('comment')) $this->stack[0][2]=$this->_toregexp($this->getConf('comment'),0);
+        $this->loadnamedparam($this->getConf('namedprompt'), 'prompt'); 
+        $this->loadnamedparam($this->getConf('namedcontinue'), 'continue'); 
+        $this->loadnamedparam($this->getConf('namedcomment'), 'comment'); 
+    }
     /**
      * return some info
      */
     function getInfo(){
-        return array(
-            'author' => 'Chris P. Jobling; Stephan Chazelas; Andy Webber',
-            'email'  => 'C.P.Jobling@Swansea.ac.uk',
-            'date'   => '2008-13-02',
-            'name'   => 'Command Line Interface (CLI) Plugin',
-            'desc'   => 'Renders transcripts of command line interactions, e.g. for shell and dynamic language interpretor tutorials',
-            'url'    => 'http://eehope.swan.ac.uk/dokuwiki/plugins:cli',
-        );
+        return confToHash(dirname(__FILE__).'/info.txt');
     }
- 
+    
     /**
      * What kind of syntax are we?
      */
     function getType(){
         return 'protected';
     }
- 
+
     /**
      * What kind of syntax do we allow (optional)
      */
 //    function getAllowedTypes() {
 //        return array();
 //    }
- 
+
     // override default accepts() method to allow nesting
     // - ie, to get the plugin accepts its own entry syntax
     function accepts($mode) {
         if ($mode == substr(get_class($this), 7)) return true;
         return parent::accepts($mode);
     }
-    
+
     /**
      * What about paragraphs? (optional)
      */
     function getPType(){
         return 'block';
     }
- 
+
     /**
      * Where to sort in?
-     */ 
+     */
     function getSort(){
         return 601;
     }
- 
- 
+
+
     /**
      * Connect pattern to lexer
      */
@@ -101,12 +108,12 @@ class syntax_plugin_cli extends DokuWiki_Syntax_Plugin {
           * wrt nested (...)
          */
     }
- 
+
     function postConnect() {
        $this->Lexer->addExitPattern('\r?\n?</cli>','plugin_cli');
     }
- 
- 
+
+
     /**
      * Handle the match
      */
@@ -126,31 +133,43 @@ class syntax_plugin_cli extends DokuWiki_Syntax_Plugin {
         }
         return array();
     }
- 
+
     /**
      * Create output
      */
     function render($mode, &$renderer, $data) {
+	if(!$this->initp) $this->init();
         if($mode == 'xhtml'){
              list($state, $match) = $data;
              switch ($state) {
              case DOKU_LEXER_ENTER :
                  $args = $match;
-                 $this->_process_args($args);
+                 $this->_get_and_push_prompts($args);
                  $renderer->doc .= '<pre class="cli">';
                  break;
-             case DOKU_LEXER_UNMATCHED : 
+             case DOKU_LEXER_UNMATCHED :
                  $this->_render_conversation($match, $renderer);
                  break;
              case DOKU_LEXER_EXIT :
+                 array_pop($this->stack);
+
                  $renderer->doc .= "</pre>";
+
                  break;
              }
              return true;
         }
         return false;
     }
- 
+
+    function loadnamedparam($s, $type){
+        foreach(preg_split('/\n\r|\n|\r/',$s) as $line){
+            if(''==$line)
+                continue;
+            list($nom,$val)=explode(':', $line, 2);
+            $this->namedpcc[$nom][$type]=($type == 'comment') ? $this->_toregexp($val,0) : $this->_toregexp($val);
+        }
+    }
      function _extract($args, $param) {
          /*
           * extracts value from $args for $param
@@ -181,63 +200,77 @@ class syntax_plugin_cli extends DokuWiki_Syntax_Plugin {
                  return $result;
          }
      }
- 
-     function _process_args($args) {
-         // process args to CLI tag: sets $comment_str and $prompt_str
-         if (!is_null($prompt = $this->_extract($args, 'prompt')))
-             $this->prompt_str = $prompt;
-         if (!is_null($comment = $this->_extract($args, 'comment')))
-             $this->comment_str = $comment;
-     }
-    
+
+    function _get_and_push_prompts($args) {
+        // process args to CLI tag: sets $comment_str and $prompt_str and $prompt_cont
+        $name=rtrim($this->_extract($args, 't'),'>');
+        $this->stack[]=array(
+            ($s = $this->_extract($args, 'prompt')) ? $this->_toregexp($s) : ($this->namedpcc[$name]['prompt'] ? $this->namedpcc[$name]['prompt'] : $this->stack[0][0]),
+            ($s = $this->_extract($args, 'continue')) ? $this->_toregexp($s) : ($this->namedpcc[$name]['continue'] ? $this->namedpcc[$name]['continue'] : $this->stack[0][1]),
+            ($s = $this->_extract($args, 'comment')) ? $this->_toregexp($s,0) : ($this->namedpcc[$name]['comment'] ? $this->namedpcc[$name]['comment'] : $this->stack[0][2]),
+        );
+    }
+
+    function _toregexp( $s, $from_start_of_line=1 ) {
+        if(preg_match('/^([\/=,;%@]).+(\1)$/', $s)) {
+            return $s;
+        }
+        $r= $from_start_of_line? '/^.*?' : '/';
+        foreach( str_split( $s ) as $c )
+            $r .= ('\\' == $c || $c == '/') ? "[\\$c]" :  "[$c]";
+        $r .= '/';
+        return $r;
+    }
     function _render_conversation($match, &$renderer) {
+        list( $prompt_str, $prompt_cont, $comment_str )=end($this->stack);
         $prompt_continues = false;
         $lines = preg_split('/\n\r|\n|\r/',$match);
         if ( trim($lines[0]) == "" ) unset( $lines[0] );
         if ( trim($lines[count($lines)]) == "" ) unset( $lines[count($lines)] );
-        foreach ($lines as $line) {
-            $index = strpos($line, $this->prompt_str);
-            if ($index === false) {   
-                if ($this->prompt_continues) {
-                  if (preg_match($this->prompt_cont, $line, $promptc) === 0) $this->prompt_continues = false;
-                }
-                if ($this->prompt_continues) {
+        $prompt_continue=false;
+        foreach($lines as $line) {
+            if($prompt_continue) {
+                if (preg_match($prompt_cont, $line, $promptc)) {
                     // format prompt
                     $renderer->doc .= '<span class="cli_prompt">' . $renderer->_xmlEntities($promptc[0]) . "</span>";
                     // Split line into command + optional comment (only end-of-line comments supported)
-                    $command =  preg_split($this->prompt_cont, $line);
-                    $commands = explode($this->comment_str, $command[1]);
+                    $command =  preg_split($prompt_cont, $line, 2);
+                    $commands = preg_split($comment_str, $command[1], 2);
                     // Render command
                     $renderer->doc .= '<span class="cli_command">' . $renderer->_xmlEntities($commands[0]) . "</span>";
                     // Render comment if there is one
                     if ($commands[1]) {
+                        preg_match( $comment_str, $command[1], $comment);
                         $renderer->doc .= '<span class="cli_comment">' .
-                            $renderer->_xmlEntities($this->comment_str . $commands[1]) . "</span>";
-                  }
-                  $renderer->doc .= DOKU_LF;
-                } else {
-                  // render as output
-                  $renderer->doc .= '<span class="cli_output">' . $renderer->_xmlEntities($line) . "</span>" . DOKU_LF;
-                  $this->prompt_continues=false;
+                        $renderer->_xmlEntities($comment[0] . $commands[1]) . "</span>";
+                    }
+                    $renderer->doc .= DOKU_LF;
+                    continue;
                 }
-            } else {
-                $this->prompt_continues = true;
+            }
+            if (preg_match($prompt_str, $line, $matches)) {
+                $prompt_continue=true;
+                $index=strlen($matches[0]);
                 // format prompt
-                $prompt = substr($line, 0, $index) . $this->prompt_str;
+                $prompt = substr($line, 0, $index);
                 $renderer->doc .= '<span class="cli_prompt">' . $renderer->_xmlEntities($prompt) . "</span>";
                 // Split line into command + optional comment (only end-of-line comments supported)
-                $commands = explode($this->comment_str, substr($line, $index + strlen($this->prompt_str)));
+                $commands = preg_split($comment_str, substr($line, $index),2);
                 // Render command
-                 $renderer->doc .= '<span class="cli_command">' . $renderer->_xmlEntities($commands[0]) . "</span>";
+                $renderer->doc .= '<span class="cli_command">' . $renderer->_xmlEntities($commands[0]) . "</span>";
                 // Render comment if there is one
                 if ($commands[1]) {
-                     $renderer->doc .= '<span class="cli_comment">' .
-                        $renderer->_xmlEntities($this->comment_str . $commands[1]) . "</span>";
+                    preg_match( $comment_str, substr($line, $index), $comment);
+                    $renderer->doc .= '<span class="cli_comment">' .
+                    $renderer->_xmlEntities($comment[0] . $commands[1]) . "</span>";
                 }
-                 $renderer->doc .= DOKU_LF;
+                $renderer->doc .= DOKU_LF;
+                continue;
             }
+            // render as output
+            $renderer->doc .= '<span class="cli_output">' . $renderer->_xmlEntities($line) . "</span>" . DOKU_LF;
+            $prompt_continue=false;
         }
     }
 }
 //Setup VIM: ex: et ts=4 enc=utf-8 sw=4 :
-?>

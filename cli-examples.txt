@@ -1,6 +1,6 @@
 ====== Tests of CLI Plugin ======
 
-This page provides a set of test cases for the [[plugins:cli|CLI Plugin]] and also serves as an example of its use.
+This page provides a set of test cases for the [[plugins:cli|CLI Plugin]] ([[doku>plugin:cli]]) and also serves as an example of its use. 
 
 ===== Basic Shell Script =====
 
@@ -11,7 +11,7 @@ Wiki text:
    info.txt  manager.dat  renderer.php  syntax.php
    user@host:~/somedir $ wc info.txt # count words in info.txt
    55 108 1032 info.txt
-   user@host:~/somedir $
+   user@host:~/somedir $ 
    </cli>
 
 Rendered result: 
@@ -22,14 +22,23 @@ conf      lang         README        screen.gif  ui
 info.txt  manager.dat  renderer.php  syntax.php
 user@host:~/somedir $ wc info.txt # count words in info.txt
 55 108 1032 info.txt
-user@host:~/somedir $
+user@host:~/somedir $ 
 </cli>
 
 
 
 ===== Shell Script with Comments =====
 
-<cli comment="#">
+Nothing special to do. default comment string is #.
+
+  <cli>
+  user@host:~/somedir $ ls # List current directory
+  conf      lang         README        screen,gif  ui
+  info.txt  manager.dat  renderer.php  syntax.php
+  user@host:~/somedir $ 
+  </cli>
+
+<cli>
 user@host:~/somedir $ ls # List current directory
 conf      lang         README        screen,gif  ui
 info.txt  manager.dat  renderer.php  syntax.php
@@ -40,34 +49,23 @@ user@host:~/somedir $
 
 ===== Root Shell Script with Comments =====
 
+Again, noting special to do. default prompt will handle this case happily.
 This (default shell comment character):
 
-   <cli prompt="#">
-   root@host:~user/somedir # ls # List current directory
-   conf      lang         README        screen,gif  ui
-   info.txt  manager.dat  renderer.php  syntax.php
-   root@host:~user/somedir # 
-   </cli>
+  <cli>
+  user@host:~ (0) $ sudo -s
+  [sudo] password for user: 
+  root@host:~user/somedir # ls # List current directory
+  conf      lang         README        screen,gif  ui
+  info.txt  manager.dat  renderer.php  syntax.php
+  root@host:~user/somedir # 
+  </cli>
 
 renders as this:
 
-<cli prompt="#">
-root@host:~user/somedir # ls # List current directory
-conf      lang         README        screen,gif  ui
-info.txt  manager.dat  renderer.php  syntax.php
-root@host:~user/somedir # 
-</cli>
-
-This is also valid:
-
-   <cli prompt="# " comment="#">
-   root@host:~user/somedir # ls # List current directory
-   conf      lang         README        screen,gif  ui
-   info.txt  manager.dat  renderer.php  syntax.php
-   root@host:~user/somedir # 
-   </cli> 
-
-<cli prompt="# " comment="#">
+<cli>
+user@host:~ (0) $ sudo -s
+[sudo] password for user: 
 root@host:~user/somedir # ls # List current directory
 conf      lang         README        screen,gif  ui
 info.txt  manager.dat  renderer.php  syntax.php
@@ -76,39 +74,27 @@ root@host:~user/somedir #
 
 Example with a continuation prompt:
 
-    <cli prompt="$ " continue="> " comment="#">
+    <cli>
     user@host:~/somedir $ ls \
     > # List directory
          file1 file2
     </cli>
 
-<cli prompt="$ " continue="> " comment="#">
+<cli>
 user@host:~/somedir $ ls \
 > # List directory
 file1 file2
 </cli>
 
-
-===== Shell Script with Comments =====
-
-<cli prompt="$" comment="#">
-user@host:~/somedir $ ls # List current directory
-conf      lang         README        screen,gif  ui
-info.txt  manager.dat  renderer.php  syntax.php
-user@host:~/somedir $ 
-</cli>
-
-
-
 ===== Windows Command Window =====
 
 Wiki text:
 
-<cli prompt=">" comment="REM">
-C:\Users\User>REM hello world!
-C:\Users\User>echo 'hello world!'
-'hello world!'
-</cli>
+  <cli prompt=">" comment="REM">
+  C:\Users\User>REM hello world!
+  C:\Users\User>echo 'hello world!'
+  'hello world!'
+  </cli>
 
 Rendered result:
 
@@ -121,22 +107,107 @@ C:\Users\User>echo 'hello world!'
 ===== Ruby irb =====
 
 Simple minded implementation will not work for results as end of prompt is same as results marker!
+  <cli prompt=">">
+  irb(main):001:0> 2+2
+  => 4
+  irb(main):002:0> 
+  </cli>
+
 <cli prompt=">">
 irb(main):001:0> 2+2
 => 4
-irb(main):002:0>
+irb(main):002:0> 
+</cli>
+
+but using the default 'irb' shortcut will work
+  <cli t=irb>
+  irb(main):001:0> 2+2
+  => 4
+  irb(main):002:0> 
+  </cli>
+
+<cli t=irb>
+irb(main):001:0> 2+2
+=> 4
+irb(main):002:0> 
 </cli>
 
 ===== Python =====
 
-<cli prompt=">>>">
+The only thing we must take care of is the continue prompt.
+
+  <cli continue="...">
+  user@host:~ (0) $ python
+  ActivePython 2.5.1.1 (ActiveState Software Inc.) based on
+  Python 2.5.1 (r251:54863, May  1 2007, 17:47:05) [MSC v.1310 32 bit (Intel)] on
+  win32
+  Type "help", "copyright", "credits" or "license" for more information.
+  >>> def fib(n):    # write Fibonacci series up to n
+  ...     "Print a Fibonacci series up to n"
+  ...     a, b = 0, 1
+  ...     while b < n:
+  ...         print b,
+  ...         a, b = b, a+b
+  ... 
+  >>> # Now call the function we just defined:
+  ... fib(2000)
+  1 1 2 3 5 8 13 21 34 55 89 144 233 377 610 987 1597
+  </cli>
+
+<cli continue="...">
+user@host:~ (0) $ python
 ActivePython 2.5.1.1 (ActiveState Software Inc.) based on
 Python 2.5.1 (r251:54863, May  1 2007, 17:47:05) [MSC v.1310 32 bit (Intel)] on
 win32
 Type "help", "copyright", "credits" or "license" for more information.
->>> 2+2
-4
->>>
+>>> def fib(n):    # write Fibonacci series up to n
+...     "Print a Fibonacci series up to n"
+...     a, b = 0, 1
+...     while b < n:
+...         print b,
+...         a, b = b, a+b
+... 
+>>> # Now call the function we just defined:
+... fib(2000)
+1 1 2 3 5 8 13 21 34 55 89 144 233 377 610 987 1597
+</cli>
+
+Or we can do it using the special predefined python name. That's the same thing.
+
+  <cli t=python>
+  user@host:~ (0) $ python
+  ActivePython 2.5.1.1 (ActiveState Software Inc.) based on
+  Python 2.5.1 (r251:54863, May  1 2007, 17:47:05) [MSC v.1310 32 bit (Intel)] on
+  win32
+  Type "help", "copyright", "credits" or "license" for more information.
+  >>> def fib(n):    # write Fibonacci series up to n
+  ...     "Print a Fibonacci series up to n"
+  ...     a, b = 0, 1
+  ...     while b < n:
+  ...         print b,
+  ...         a, b = b, a+b
+  ... 
+  >>> # Now call the function we just defined:
+  ... fib(2000)
+  1 1 2 3 5 8 13 21 34 55 89 144 233 377 610 987 1597
+  </cli>
+
+<cli t=python>
+user@host:~ (0) $ python
+ActivePython 2.5.1.1 (ActiveState Software Inc.) based on
+Python 2.5.1 (r251:54863, May  1 2007, 17:47:05) [MSC v.1310 32 bit (Intel)] on
+win32
+Type "help", "copyright", "credits" or "license" for more information.
+>>> def fib(n):    # write Fibonacci series up to n
+...     "Print a Fibonacci series up to n"
+...     a, b = 0, 1
+...     while b < n:
+...         print b,
+...         a, b = b, a+b
+... 
+>>> # Now call the function we just defined:
+... fib(2000)
+1 1 2 3 5 8 13 21 34 55 89 144 233 377 610 987 1597
 </cli>
 
 
@@ -146,7 +217,7 @@ Type "help", "copyright", "credits" or "license" for more information.
 Wiki text:
    <cli prompt=">">
    C:\Users\Chris Jobling>python
-   <cli prompt=">>>">
+   <cli t=python>
    ActivePython 2.5.1.1 (ActiveState Software Inc.) based on
    Python 2.5.1 (r251:54863, May  1 2007, 17:47:05) [MSC v.1310 32 bit (Intel)] on
    win32
@@ -160,10 +231,9 @@ Wiki text:
    </cli>
 
 Rendered result:
-Wiki text:
 <cli prompt=">">
 C:\Users\Chris Jobling>python
-<cli prompt=">">
+<cli t=python>
 ActivePython 2.5.1.1 (ActiveState Software Inc.) based on
 Python 2.5.1 (r251:54863, May  1 2007, 17:47:05) [MSC v.1310 32 bit (Intel)] on
 win32
@@ -176,28 +246,126 @@ Type "help", "copyright", "credits" or "license" for more information.
 C:\Users\Chris Jobling>
 </cli>
 
+===== unix session with multiple commands, comments etc... =====
+
+  <cli>
+  user@host:~/somedir $ echo Don t be fooled by this sharp sign $# It s not a comment
+  Don t be fooled byt his sharp sign 0 It s not a comment
+  grumpf [9881] 09:23:31 (0) ~ $ echo it seems \
+  > to be ok # really
+  it seems to be ok
+  user@host:~ (0) $ sudo -s #I need to be root to run this ls command...
+  [sudo] password for user: 
+  root@host:~ (0) # ls \
+  > # let's have a look
+  Bureau         examples.desktop  monproj  Replicated
+  compilesqlite  Images            Musique  Téléchargements
+  Documents      liste-des-procs   projet   test
+  Editra-user    Modèles           Public   Vidéos
+  root@host:~ (0) # echo Hum... It seems to be ok #really
+  Hum... It seems to be ok
+  root@host:~ (0) # exit
+  user@host:~ (0) $ psql -U sauronuser sauron # look at that DB now
+  Mot de passe pour l'utilisateur sauronuser : 
+  Bienvenue dans psql 8.3.13, l'interface interactive de PostgreSQL.
+  
+  Saisissez:
+      \copyright pour les termes de distribution
+      \h pour l'aide-mémoire des commandes SQL
+      \? pour l'aide-mémoire des commandes psql
+      \g ou point-virgule en fin d'instruction pour exécuter la requête
+      \q pour quitter
+  
+  sauron=> select 
+  sauron-> * from
+  sauron-> settings;
+    setting  | value | ivalue 
+  -----------+-------+--------
+   dbversion | 1.4   |       
+  (1 ligne)
+  
+  sauron=> \q
+  user@host:~ (0) $ 
+  </cli>
+
+<cli>
+user@host:~/somedir $ echo Don t be fooled by this sharp sign $# It s not a comment
+Don t be fooled by this sharp sign 0 It s not a comment
+grumpf [9881] 09:23:31 (0) ~ $ echo it seems \
+> to be ok # really
+it seems to be ok
+user@host:~ (0) $ sudo -s #I need to be root to run this ls command...
+[sudo] password for user: 
+root@host:~ (0) # ls \
+> # let's have a look
+Bureau         examples.desktop  monproj  Replicated
+compilesqlite  Images            Musique  Téléchargements
+Documents      liste-des-procs   projet   test
+Editra-user    Modèles           Public   Vidéos
+root@host:~ (0) # echo Hum... It seems to be ok #really
+Hum... It seems to be ok
+root@host:~ (0) # exit
+user@host:~ (0) $ psql -U sauronuser sauron # look at that DB now
+Mot de passe pour l'utilisateur sauronuser : 
+Bienvenue dans psql 8.3.13, l'interface interactive de PostgreSQL.
+
+Saisissez:
+\copyright pour les termes de distribution
+\h pour l'aide-mémoire des commandes SQL
+\? pour l'aide-mémoire des commandes psql
+\g ou point-virgule en fin d'instruction pour exécuter la requête
+\q pour quitter
+
+sauron=> select 
+sauron-> * from
+sauron-> settings;
+  setting  | value | ivalue 
+-----------+-------+--------
+ dbversion | 1.4   |       
+(1 ligne)
+
+sauron=> \q
+user@host:~ (0) $ 
+</cli>
+
 ===== Corner Cases =====
 
   * The following codes don't display right
 <code>
 <cli prompt="#">
-# rpm -ivh darcs-1.0.9-3.fc6.i386.rpm
+# rpm -ivh darcs-1.0.9-3.fc6.i386.rpm # let's install that darcs thingy
 Preparing...                ########################################### [100%]
    1:darcs                  ########################################### [100%]
 </cli>
 </code>
 
 <cli prompt="#">
-# rpm -ivh darcs-1.0.9-3.fc6.i386.rpm
+# rpm -ivh darcs-1.0.9-3.fc6.i386.rpm # let's install that darcs thingy
 Preparing...                ########################################### [100%]
    1:darcs                  ########################################### [100%]
 </cli>
 
-Not sure to do about this as download progress marker uses same character as prompt!
+> Not sure to do about this as download progress marker uses same character as prompt!
+Since the default prompt is expected to be shorter that 30 chars, doing nothing
+special works perfectly.
+
+<code>
+<cli>
+# rpm -ivh darcs-1.0.9-3.fc6.i386.rpm # let's install that darcs thingy
+Preparing...                ########################################### [100%]
+   1:darcs                  ########################################### [100%]
+</cli>
+</code>
+
+<cli>
+# rpm -ivh darcs-1.0.9-3.fc6.i386.rpm # let's install that darcs thingy
+Preparing...                ########################################### [100%]
+   1:darcs                  ########################################### [100%]
+</cli>
 
   * CLI shouldn't silently eat intentional blank lines:
 
-<cli prompt="$" comment="#">
+<cli>
 user@host:~/somedir $ ls # List current directory
 conf      lang         README        screen,gif  ui
 info.txt  manager.dat  renderer.php  syntax.php
