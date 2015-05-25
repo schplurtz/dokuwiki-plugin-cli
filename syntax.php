@@ -3,6 +3,8 @@
  * Command Line Interface (CLI) Plugin
  *     Typeset transcripts of interactive sessions with mimumum effort.
  * Syntax:
+ *     <cli>
+ *   or
  *     <cli prompt="$ " continue="> " comment="#">
  *   or
  *     <cli prompt="/^.*?[%$#>] /" continue="/^(?:|[^=]|..*?)> /" comment="#">
@@ -21,8 +23,11 @@
  *  Improved parsing added by Stephane Chazelas
  *  proper <cli> nesting. regexp for prompt and comments, shortcuts, config options, French translation, better continuation by Schplurtz le Déboulonné.
  *
- * @license    GPL 2 (http://www.gnu.org/licenses/gpl.html)
- * @author     Chris P. Jobling <C.P.Jobling@Swansea.ac.uk>
+ * @license      GPL 2 (http://www.gnu.org/licenses/gpl.html)
+ * @author       Chris P. Jobling <C.P.Jobling@Swansea.ac.uk>
+ * @contributor  Stephane Chazelas
+ * @Contributor  Any Webber
+ * @Contributor  Schplurtz le Déboulonné
  */
 
 if(!defined('DOKU_INC')) define('DOKU_INC',realpath(dirname(__FILE__).'/../../').'/');
@@ -65,12 +70,6 @@ class syntax_plugin_cli extends DokuWiki_Syntax_Plugin {
         return 'protected';
     }
 
-    /**
-     * What kind of syntax do we allow (optional)
-     */
-//    function getAllowedTypes() {
-//        return array();
-//    }
 
     // override default accepts() method to allow nesting
     // - ie, to get the plugin accepts its own entry syntax
@@ -140,28 +139,51 @@ class syntax_plugin_cli extends DokuWiki_Syntax_Plugin {
     function render($mode, &$renderer, $data) {
 	if(!$this->initp) $this->init();
         if($mode == 'xhtml'){
-             list($state, $match) = $data;
-             switch ($state) {
-             case DOKU_LEXER_ENTER :
-                 $args = $match;
-                 $this->_get_and_push_prompts($args);
-                 $renderer->doc .= '<pre class="cli">';
-                 break;
-             case DOKU_LEXER_UNMATCHED :
-                 $this->_render_conversation($match, $renderer);
-                 break;
-             case DOKU_LEXER_EXIT :
-                 array_pop($this->stack);
-
-                 $renderer->doc .= "</pre>";
-
-                 break;
-             }
+            $this->_render_xhtml( $renderer, $data );
              return true;
+        }
+        elseif( $mode == 'odt' ) {
+            $this->_render_odt( $renderer, $data );
+            return true;
         }
         return false;
     }
 
+    function _render_xhtml( &$renderer, $data ) {
+        list($state, $match) = $data;
+        switch ($state) {
+        case DOKU_LEXER_ENTER :
+            $args = $match;
+            $this->_get_and_push_prompts($args);
+            $renderer->doc .= '<pre class="cli">';
+        break;
+        case DOKU_LEXER_UNMATCHED :
+            $this->_render_conversation_xhtml($match, $renderer);
+        break;
+        case DOKU_LEXER_EXIT :
+            array_pop($this->stack);
+            $renderer->doc .= "</pre>";
+        break;
+        }
+    }
+    function _render_odt( &$renderer, $data ) {
+        list($state, $match) = $data;
+        switch ($state) {
+        case DOKU_LEXER_ENTER :
+            $args = $match;
+            $this->_get_and_push_prompts($args);
+            $renderer->p_close();
+            $renderer->p_open('Source_20_Code');
+        break;
+        case DOKU_LEXER_UNMATCHED :
+            $this->_render_conversation_odt($match, $renderer);
+        break;
+        case DOKU_LEXER_EXIT :
+            array_pop($this->stack);
+            $renderer->p_close();
+        break;
+        }
+    }
     function loadnamedparam($s, $type){
         foreach(preg_split('/\n\r|\n|\r/',$s) as $line){
             if(''==$line)
@@ -221,16 +243,17 @@ class syntax_plugin_cli extends DokuWiki_Syntax_Plugin {
         $r .= '/';
         return $r;
     }
-    function _render_conversation($match, &$renderer) {
+    function _render_conversation_xhtml($match, &$renderer) {
         list( $prompt_str, $prompt_cont, $comment_str )=end($this->stack);
         $prompt_continues = false;
         $lines = preg_split('/\n\r|\n|\r/',$match);
-        if ( trim($lines[0]) == "" ) unset( $lines[0] );
+        if ( trim($lines[0]) == '' ) unset( $lines[0] );
         if ( trim($lines[count($lines)]) == "" ) unset( $lines[count($lines)] );
-        $prompt_continue=false;
-        foreach($lines as $line) {
+            $prompt_continue=false;
+            foreach($lines as $line) {
             if($prompt_continue) {
                 if (preg_match($prompt_cont, $line, $promptc)) {
+                    $prompt_continue=true;
                     // format prompt
                     $renderer->doc .= '<span class="cli_prompt">' . $renderer->_xmlEntities($promptc[0]) . "</span>";
                     // Split line into command + optional comment (only end-of-line comments supported)
@@ -269,8 +292,71 @@ class syntax_plugin_cli extends DokuWiki_Syntax_Plugin {
             }
             // render as output
             $renderer->doc .= '<span class="cli_output">' . $renderer->_xmlEntities($line) . "</span>" . DOKU_LF;
+        }
+    }
+    function _render_conversation_odt($match, &$renderer) {
+        list( $prompt_str, $prompt_cont, $comment_str )=end($this->stack);
+        $prompt_continues = false;
+        $lines = preg_split('/\n\r|\n|\r/',$match);
+        if ( trim($lines[0]) == '' ) unset( $lines[0] );
+        if ( trim($lines[count($lines)]) == "" ) unset( $lines[count($lines)] );
             $prompt_continue=false;
+            foreach($lines as $line) {
+            if($prompt_continue) {
+                if (preg_match($prompt_cont, $line, $promptc)) {
+                    $prompt_continue=true;
+                    // format prompt
+                    $renderer->_odtSpanOpenUseCSSStyle('color:green;');
+                    $renderer->doc .= $renderer->_xmlEntities($promptc[0]);
+                    $renderer->_odtSpanClose();
+                    // Split line into command + optional comment (only end-of-line comments supported)
+                    $command =  preg_split($prompt_cont, $line, 2);
+                    $commands = preg_split($comment_str, $command[1], 2);
+                    // Render command
+                    $renderer->_odtSpanOpenUseCSSStyle('color:red;');
+                    $renderer->doc .= $renderer->_xmlEntities($commands[0]);
+                    $renderer->_odtSpanClose();
+                    // Render comment if there is one
+                    if ($commands[1]) {
+                        preg_match( $comment_str, $command[1], $comment);
+                        $renderer->_odtSpanOpenUseCSSStyle('color:brown;');
+                        $renderer->_xmlEntities($comment[0] . $commands[1]);
+                        $renderer->_odtSpanClose();
+                    }
+                    $renderer->linebreak();
+                    continue;
+                }
+            }
+            if (preg_match($prompt_str, $line, $matches)) {
+                $prompt_continue=true;
+                $index=strlen($matches[0]);
+                // format prompt
+                $prompt = substr($line, 0, $index);
+                $renderer->_odtSpanOpenUseCSSStyle('color:green;');
+                $renderer->doc .= $renderer->_xmlEntities($prompt);
+                $renderer->_odtSpanClose();
+                // Split line into command + optional comment (only end-of-line comments supported)
+                $commands = preg_split($comment_str, substr($line, $index),2);
+                // Render command
+                $renderer->_odtSpanOpenUseCSSStyle('color:red;');
+                $renderer->doc .= $renderer->_xmlEntities($commands[0]);
+                $renderer->_odtSpanClose();
+                // Render comment if there is one
+                if ($commands[1]) {
+                    preg_match( $comment_str, substr($line, $index), $comment);
+                    $renderer->_odtSpanOpenUseCSSStyle('color:brown;');
+                    $renderer->_xmlEntities($comment[0] . $commands[1]);
+                    $renderer->_odtSpanClose();
+                }
+                $renderer->linebreak();
+                continue;
+            }
+            // render as output
+            $renderer->_odtSpanOpenUseCSSStyle('color:blue;');
+            $renderer->doc .= $renderer->_xmlEntities($line);
+            $renderer->_odtSpanClose();
+            $renderer->linebreak();
         }
     }
 }
-//Setup VIM: ex: et ts=4 enc=utf-8 sw=4 :
+//Setup VIM: ex: et ts=4 sw=4 :
