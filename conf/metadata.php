@@ -1,4 +1,10 @@
 <?php
+/**
+ * Options for the cli plugin
+ *
+ * @author Schplurtz le Déboulonné <schplurtz@laposte.net>
+ */
+
 
 $meta['prompt']		= array('string');
 $meta['continue']	= array('string');
