@@ -1,43 +1,17 @@
 <?php
 /**
- * Command Line Interface (CLI) Plugin
- *     Typeset transcripts of interactive sessions with mimumum effort.
- * Syntax:
- *     <cli>
- *   or
- *     <cli prompt="$ " continue="> " comment="#">
- *   or
- *     <cli prompt="/^.*?[%$#>] /" continue="/^(?:|[^=]|..*?)> /" comment="#">
- *     user@host:~/somedir $ ls \
- *     > # List directory
- *     file1 file2
- *     </cli>
- *   prompt --- [optional] prompt character or regexp used. '/^.{0,30}?[>%$#] /' is default - note the space.
- *   continue --- [optional] regex of shell continuation '/^.{0,30}?> /' is the default - note the space
- *   comment --- [optional] comment character used. '/(^#)| #/' is default - note no space after #.
- *   The defaults above match many cli defaults. Bourne shell ${PS1} and ${PS2} prompts and comment among others.
- *
- * Acknowledgements:
- *  Borrows heavily from the boxes plugin!
- *  Support for continuation added by Andy Webber
- *  Improved parsing added by Stephane Chazelas
- *  proper <cli> nesting. regexp for prompt and comments, shortcuts, config options, French translation, better continuation by Schplurtz le Déboulonné.
+ * DokuWiki Plugin cli (Syntax Component)
  *
  * @license      GPL 2 (http://www.gnu.org/licenses/gpl.html)
  * @author       Chris P. Jobling <C.P.Jobling@Swansea.ac.uk>
- * @contributor  Stephane Chazelas
- * @Contributor  Any Webber
- * @Contributor  Schplurtz le Déboulonné
+ * @author       Stephane Chazelas <stephane.chazelas@emerson.com>
+ * @author       Andy Webber <dokuwiki@andywebber.com>
+ * @author       Schplurtz le Déboulonné <schplurtz@laposte.net>
  */
 
-if(!defined('DOKU_INC')) define('DOKU_INC',realpath(dirname(__FILE__).'/../../').'/');
-if(!defined('DOKU_PLUGIN')) define('DOKU_PLUGIN',DOKU_INC.'lib/plugins/');
-require_once(DOKU_PLUGIN.'syntax.php');
+// must be run within Dokuwiki
+if (!defined('DOKU_INC')) die();
 
-/**
- * All DokuWiki plugins to extend the parser/rendering mechanism
- * need to inherit from this class
- */
 class syntax_plugin_cli extends DokuWiki_Syntax_Plugin {
 
     # prompt, continue and comment stack
@@ -359,4 +333,5 @@ class syntax_plugin_cli extends DokuWiki_Syntax_Plugin {
         }
     }
 }
-//Setup VIM: ex: et ts=4 sw=4 :
+
+// vim:ts=4:sw=4:et:
