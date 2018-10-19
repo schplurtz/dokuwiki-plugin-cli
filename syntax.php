@@ -17,6 +17,7 @@ class syntax_plugin_cli extends DokuWiki_Syntax_Plugin {
     const PROMPT=0;
     const CONT=1;
     const COMMENT=2;
+    const TYPE=3;
     const STYLE=array( 'font-family' => 'Bitstream Vera Sans Mono', 'font-name' => 'Bitstream Vera Sans Mono', 'background-color' => '#f7f9fa', 'border' => '0.06pt solid #8cacbb', 'font-size' => '10pt', );
     // prompt, continue and comment stack
     protected $stack;
@@ -153,16 +154,18 @@ class syntax_plugin_cli extends DokuWiki_Syntax_Plugin {
                     $t
                     : $this->stack[0][self::COMMENT]
                 );
+            $this->current[self::TYPE]=$type;
             $this->stack[]=$this->current;
-            // return nesting level
-            return array($state, count($this->stack) - 2);
+            // return nesting level and type
+            return array($state, count($this->stack) - 2, $this->current[self::TYPE]);
         case DOKU_LEXER_UNMATCHED :
-            return array( $state, $this->_parse_conversation($match) );
+            // return 3 elements.
+            return array( $state, $this->_parse_conversation($match), null );
         case DOKU_LEXER_EXIT :
               array_pop($this->stack);
               $this->current=end($this->stack);
-              // return same nested level as DOKU_LEXER_ENTER
-              return array($state, count($this->stack) -1);
+              // return same nested level as DOKU_LEXER_ENTER. return 3 elements.
+              return array($state, count($this->stack) -1, null);
         }
         return array();
     }
@@ -258,13 +261,14 @@ class syntax_plugin_cli extends DokuWiki_Syntax_Plugin {
      * @return void
      */
     protected function _render_xhtml(Doku_Renderer $renderer, $data) {
-        list($state, $thing) = $data;
+        list($state, $thing, $type) = $data;
         switch ($state) {
         case DOKU_LEXER_ENTER :
             // $thing is nesting level here.
             // only create one <pre> element for all the nested cli
-            if( 0 === $thing )
-                $renderer->doc .= '</p><pre class="cli">';
+            if( 0 === $thing ) {
+                $renderer->doc .= "</p><pre class='cli $type'>";
+            }
             else
                 $renderer->doc .= DOKU_LF;
         break;
