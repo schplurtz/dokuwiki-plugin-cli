@@ -89,14 +89,18 @@ class syntax_plugin_cli extends DokuWiki_Syntax_Plugin {
      * Connect lookup pattern to lexer.
      *
      * @author       Stephane Chazelas <stephane.chazelas@emerson.com>
+     * @author       Schplurtz le Déboulonné <schplurtz@laposte.net>
      * @param string $mode Parser mode
      */
     public function connectTo($mode) {
+        // by the way, '<cli.*? >\r?\n?(?=.*?</cli>)' is the worst idea ever.
         $this->Lexer->addEntryPattern('<cli(?:[)]?' .
-            '"(?:\\\\.|[^\\\\"])*"' .     /* double-quoted string */
-            '|\'(?:\\\\.|[^\'\\\\])*\'' . /* single-quoted string */
-            '|\\\\.' .                    /* escaped character */
-            '|[^\'"\\\\>]|[(?:])*>\r?\n?(?=.*?</cli>)',$mode,'plugin_cli');
+            '"(?:\\\\.|[^\\\\"])*"' .     // double-quoted string
+            '|\'(?:\\\\.|[^\'\\\\])*\'' . // single-quoted string
+            '|\\\\.' .                    // escaped character
+            '|[^\'"\\\\>]|[(?:])*>\r?\n?'.
+            '(?=.*?</cli>)'
+            ,$mode,'plugin_cli');
             /*
              * The [)]? and |[(?:] is to work around a bug in lexer.php
              * wrt nested (...)
@@ -127,24 +131,25 @@ class syntax_plugin_cli extends DokuWiki_Syntax_Plugin {
         case DOKU_LEXER_ENTER :
             $this->_init();
             $args = substr(rtrim($match), 4, -1); // strip '<cli' and '>'
+            $params=$this->_parseparams($args);
             // process args to CLI tag: sets $comment_str and $prompt_str and $prompt_cont
-            $name=$this->_extract($args, '(?:t|l|lng|language|lang|type)');
+            $type=$params['type'];
             $this->current=array();
-            $this->current[self::PROMPT]=($s = $this->_extract($args, 'prompt')) ?
-                $this->_toregexp($s)
-                : (($t=$this->namedpcc[$name][self::PROMPT]) ?
+            $this->current[self::PROMPT]=($params['prompt']) ?
+                $this->_toregexp($params['prompt'])
+                : (($type && ($t=$this->namedpcc[$type][self::PROMPT])) ?
                     $t
                     : $this->stack[0][self::PROMPT]
                 );
-            $this->current[self::CONT]=($s = $this->_extract($args, 'cont(?:inue)?')) ?
-                $this->_toregexp($s)
-                : (($t=$this->namedpcc[$name][self::CONT]) ?
+            $this->current[self::CONT]=($params['continue']) ?
+                $this->_toregexp($params['continue'])
+                : (($type && ($t=$this->namedpcc[$type][self::CONT])) ?
                     $t
                     : $this->stack[0][self::CONT]
                 );
-            $this->current[self::COMMENT]=($s = $this->_extract($args, 'comment')) ?
-                $this->_toregexp($s,1)
-                : (($t=$this->namedpcc[$name][self::COMMENT]) ?
+            $this->current[self::COMMENT]=($params['comment']) ?
+                $this->_toregexp($params['comment'],1)
+                : (($type && ($t=$this->namedpcc[$type][self::COMMENT])) ?
                     $t
                     : $this->stack[0][self::COMMENT]
                 );
@@ -388,46 +393,6 @@ class syntax_plugin_cli extends DokuWiki_Syntax_Plugin {
             $this->namedpcc[$nom][$type]=($type == self::COMMENT) ? $this->_toregexp($val,1) : $this->_toregexp($val);
         }
     }
-    /**
-     * extract value of attribute foo=value from string.
-     *
-     * removes surrounding simple or double quotes and unescape value
-     *
-     * @author Stephane Chazelas <stephane.chazelas@emerson.com>
-     * @param  $args          String        The string to search
-     * @param  $param         String        The attribute to find.
-     * @return mixed                        the value of attribute $param or null if not found or empty
-     */
-     function _extract($args, $param) {
-         /*
-          * extracts value from $args for $param
-          * xxx = "foo\"bar"  -> foo"bar
-          * xxx = a\ b        -> a b
-          * xxx = 'a\' b'     -> a' b
-          *
-          * returns null if value is empty.
-          */
-         if (preg_match("/$param" . '\s*=\s*(' .
-             '"(?:\\\\.|[^\\\\"])*"' .     /* double-quoted string */
-             '|\'(?:\\\\.|[^\'\\\\])*\'' . /* single-quoted string */
-             '|(?:\\\\.|[^\\\\\s])*' .     /* escaped characters */
-             ')/', $args, $matches)) {
-             switch (substr($matches[1], 0, 1)) {
-             case "'":
-                 $result = substr($matches[1], 1, -1);
-                 $result = preg_replace('/\\\\([\'\\\\])/', '$1', $result);
-                 break;
-             case '"':
-                 $result = substr($matches[1], 1, -1);
-                 $result = preg_replace('/\\\\(["\\\\])/', '$1', $result);
-                 break;
-             default:
-                 $result = preg_replace('/\\\\(.)/', '$1', $matches[1]);
-             }
-             if ($result != "")
-                 return $result;
-         }
-     }
 
     /**
      * transform a string or regexp into a regexp.
@@ -452,6 +417,162 @@ class syntax_plugin_cli extends DokuWiki_Syntax_Plugin {
         $r .= $is_comment_re? ')/' : '/';
         return $r;
     }
+
+    /**
+     * tokenize a string.
+     *
+     * recognize bare word, =, \-escaped char, and single or double quoted strings.
+     * ie «a\ b="foo\"bar"» produces "a b", '=', 'foo"bar'.
+     * This function implements the following DFA. See dot(1) if you
+     * need to visualize it.
+     * digraph {
+     *   node [shape=circle];
+     *   0 -> 0 [label="\\s"]
+     *   0 -> 1 [label="\""]
+     *   0 -> 3 [label="'"]
+     *   0 -> 6 [label="\\"]
+     *   0 -> 7 [label="= [+]"]
+     *   0 -> 5 [label=". [+]"]
+     *
+     *   1 -> 2 [label="\\"]
+     *   1 -> 0 [label="\" [A]"]
+     *   1 -> 1 [label=". [+]"]
+     *   2 -> 1 [label=". [+]"]
+     *
+     *   3 -> 4 [label="\\"]
+     *   3 -> 0 [label="' [A]"]
+     *   3 -> 3 [label=". [+]"]
+     *   4 -> 3 [label=". [+]"]
+     *
+     *   5 -> 6 [label="\\"]
+     *   5 -> 0 [label="\\s [A]"]
+     *   5 -> 7 [label="= [A+]"]
+     *   5 -> 1 [label="\" [A]"]
+     *   5 -> 3 [label="' [A]"]
+     *   5 -> 5 [label=". [+]"]
+     *   6 -> 5 [label=". [+]"]
+     *
+     *   7 -> 0 [label="\\s [A]"]
+     *   7 -> 1 [label="\" [A]"]
+     *   7 -> 3 [label="' [A]"]
+     * /*7 -> 7 [label="="]* /
+     *   7 -> 5 [label=". [A+]"]
+     *   e [shape=box,label="arc label : current char [actions]\n+: add current char to token\nA: Accept cur token. New token"]
+     * }
+     *
+     * @author Schplurtz le Déboulonné
+     * @param $str String The string to tokenize
+     * @return String[] An array of tokens
+     */
+    protected function _tokenize( $str ) {
+        $trs=array(
+            0 => array( ' ' => 0, "\t" => 0, '"' => 1, "'" => 3, '=' => 7, '\\' => 6, 'def' => 5 ),
+            1 => array( '\\' => 2, '"' => 0, 'def' => 1 ),
+            2 => array( 'def' => 1 ),
+            3 => array( '\\' => 4, "'" => 0, 'def' => 3 ),
+            4 => array( 'def' => 3 ),
+            5 => array( '\\' => 6, ' ' => 0, "\t" => 0, '=' => 7, '"' => 1, "'" => 3, 'def' => 5),
+            6 => array( 'def' => 5 ),
+            7 => array( ' ' => 0, "\t" => 0, "'" => 3, '"' => 1, 'def' => 5),
+        );
+        $acs=array(
+            0 => array( 7 => '+', 5 => '+',),
+            1 => array( 1 => '+', 0 => 'A',),
+            2 => array( 1 => '+',),
+            3 => array( 3 => '+', 0 => 'A',),
+            4 => array( 3 => '+',),
+            5 => array( 0 => 'A', 1 => 'A', 3 => 'A', 5 => '+', 7 => 'A+',),
+            6 => array( 5 => '+',),
+            7 => array( 1 => 'A', 3 => 'A', 0 => 'A', 5 => 'A+',),
+        );
+
+        $toks=array();
+        $tok='';
+        $state=0;
+        foreach( str_split($str) as $c ) {
+            $to = array_key_exists($c, $trs[$state]) ? $trs[$state][$c] : $trs[$state]['def'];
+            if( array_key_exists($to, $acs[$state]) ) {
+                switch($acs[$state][$to]) {
+                case '+'  : $tok .= $c; break;
+                case 'A'  : $toks[] = $tok; $tok=''; break;
+                case 'A+' : $toks[] = $tok; $tok=$c; break;
+                }
+            }
+            $state=$to;
+        }
+        /*
+        if($tok != '' && ($state == 0 || $state == 5 || $state == 7))
+            $toks[] = $tok;
+        */
+        if($tok != '') {
+            if ($state == 0 || $state == 5 || $state == 7)
+                $toks[] = $tok;
+            else
+                msg( 'In &lt;cli ...&gt;, ignored malformed text «'.hsc($tok).'».', 2, '', '', MSG_USERS_ONLY );
+        }
+
+        return $toks;
+    }
+
+    /**
+     *
+     * parse params of "<cli param...>" line
+     *
+     * param is expected to be a blank separated list of foo[=bar]
+     * statement. When there is no =bar part, then t=foo is assumed.
+     * The last non assigment statement will overwrite all the others.
+     * For example, for  «a=b c = "d" zorg», the returned
+     * array will be ( 'a' => 'b', 'c' => 'd', 't' => 'zorg' ).
+     *
+     * @author Schplurtz le Déboulonné
+     * @param $str String The string to tokenize
+     * @return array The associative array of tokens
+     */
+    protected function _parseparams( $str ) {
+        $toks=$this->_tokenize($str);
+        $n=count($toks) ;
+        $values=array( 'prompt' => false, 'continue' => false, 'comment' => false, 'type' => false );
+
+        for( $i = 0; $i < $n - 2; ++$i ) {
+            if( $toks[$i + 1] === '=' ) {
+                $key=$this->_map($toks[$i]);
+                $values[$key]=$toks[$i+2];
+                $i += 2;
+            }
+            else {
+                if( $values['type'] !== false ) {
+                    msg( 'In &lt;cli ...&gt;, «'.hsc($toks[$i]).'» override previously defined type «'. hsc($values['type']).'».', 2, '', '', MSG_USERS_ONLY );
+                }
+                $values['type']=$toks[$i];
+            }
+        }
+        //printf( "n=%2d i=%2d tok[i]='%s'\n", $n, $i, array_key_exists($i, $toks)? $toks[$i]:'');
+        if( $n ) for( ; $i < $n; ++$i ) {
+            if( $values['type'] !== false ) {
+                msg( 'In &lt;cli ...&gt;, «'.hsc($toks[$i]).'» override previously defined type «'. hsc($values['type']).'».', 2, '', '', MSG_USERS_ONLY );
+            }
+            $values['type']=$toks[$i];
+        }
+        return $values;
+    }
+    /**
+     * check <cli param names and maps them to canonical values.
+     *
+     * @author       Schplurtz le Déboulonné <schplurtz@laposte.net>
+     */
+    protected function _map( $s ) {
+        if( $s == 'lang' || $s == 'language' || $s == 'type' || $s == 't' || $s == 'l' || $s == 'lng' )
+            return 'type';
+        if( $s == 'prompt' )
+            return 'prompt';
+        if( $s == 'continue' || $s == 'cont' )
+            return 'continue';
+        if( $s == 'comment' )
+            return 'comment';
+        msg( 'Error, unknown word «' . hsc( $s ) . '» in &lt;cli&gt; parametre', -1, '', '', MSG_USERS_ONLY );
+        return 'unknown';
+    }
+
     /**
      * expands tabs to spaces.
      *
