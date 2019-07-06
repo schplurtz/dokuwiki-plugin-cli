@@ -259,7 +259,7 @@ class syntax_plugin_cli extends DokuWiki_Syntax_Plugin {
             // $thing is nesting level here.
             // only create one <pre> element for all the nested cli
             if( 0 === $thing )
-                $renderer->doc .= '</p><pre class="cli">';
+                $renderer->doc .= '</p><pre class="cli code">';
             else
                 $renderer->doc .= DOKU_LF;
         break;
