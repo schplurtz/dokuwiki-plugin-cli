@@ -1,6 +1,6 @@
 <?php
 /**
- * DokuWiki Plugin cli (Syntax Component)
+ * DokuWiki Plugin prompt (Syntax Component)
  *
  * @license      GPL 2 (http://www.gnu.org/licenses/gpl.html)
  * @author       Chris P. Jobling <C.P.Jobling@Swansea.ac.uk>
@@ -12,7 +12,7 @@
 // must be run within Dokuwiki
 if (!defined('DOKU_INC')) die();
 
-class syntax_plugin_cli extends DokuWiki_Syntax_Plugin {
+class syntax_plugin_prompt extends DokuWiki_Syntax_Plugin {
 
     const PROMPT=0;
     const CONT=1;
@@ -89,14 +89,19 @@ class syntax_plugin_cli extends DokuWiki_Syntax_Plugin {
      * Connect lookup pattern to lexer.
      *
      * @author       Stephane Chazelas <stephane.chazelas@emerson.com>
+     * @author       Schplurtz le Déboulonné <schplurtz@laposte.net>
      * @param string $mode Parser mode
      */
     public function connectTo($mode) {
+        // by the way, '<cli.*? >\r?\n?(?=.*?</cli>)' is the worst idea ever.
         $this->Lexer->addEntryPattern('<cli(?:[)]?' .
             '"(?:\\\\.|[^\\\\"])*"' .     /* double-quoted string */
             '|\'(?:\\\\.|[^\'\\\\])*\'' . /* single-quoted string */
             '|\\\\.' .                    /* escaped character */
-            '|[^\'"\\\\>]|[(?:])*>\r?\n?(?=.*?</cli>)',$mode,'plugin_cli');
+            '|[^\'"\\\\>]|[(?:])*>\r?\n?'.
+            '(?=.*?</cli>)'
+            ,$mode,'plugin_prompt');
+
             /*
              * The [)]? and |[(?:] is to work around a bug in lexer.php
              * wrt nested (...)
@@ -109,7 +114,7 @@ class syntax_plugin_cli extends DokuWiki_Syntax_Plugin {
      * @author       Stephane Chazelas <stephane.chazelas@emerson.com>
      */
     function postConnect() {
-        $this->Lexer->addExitPattern('\r?\n?</cli>','plugin_cli');
+        $this->Lexer->addExitPattern('\r?\n?</cli>','plugin_prompt');
     }
 
     /**

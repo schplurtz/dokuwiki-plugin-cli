@@ -1,11 +1,10 @@
 # General Plugin Info do not edit
 
-base   cli
-author Chris P. Jobling; Stephan Chazelas; Andy Webber; schplurtz le déboulonné
-email  C.P.Jobling@Swansea.ac.uk, stephane.chazelas@emerson.com, dokuwiki@andywebber.com,
-Schplurtz@laposte.net
-date   2008-13-02
-name   Command Line Interface (CLI) Plugin
+base   prompt
+author Schplurtz le Déboulonné, Chris P. Jobling; Stephan Chazelas; Andy Webber
+email  Scplurtz@laposte.net, C.P.Jobling@Swansea.ac.uk, stephane.chazelas@emerson.com, dokuwiki@andywebber.com,
+date   2019-07-13
+name   PROMPT, former Command Line Interface (CLI) Plugin
 desc   Renders transcripts of command line interactions, e.g. for shell and dynamic language interpretor tutorials
-url    https://www.dokuwiki.org/plugin:cli
+url    https://www.dokuwiki.org/plugin:prompt
 
