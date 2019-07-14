@@ -600,5 +600,3 @@ class syntax_plugin_prompt extends DokuWiki_Syntax_Plugin {
     }
     */
 }
-
-// vim:ts=4:sw=4:et:
