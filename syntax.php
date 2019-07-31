@@ -435,34 +435,44 @@ class syntax_plugin_prompt extends DokuWiki_Syntax_Plugin {
      *   0 -> 0 [label="\\s"]
      *   0 -> 1 [label="\""]
      *   0 -> 3 [label="'"]
-     *   0 -> 6 [label="\\"]
+     *   0 -> 6 [label="\\ [+]"]
      *   0 -> 7 [label="= [+]"]
      *   0 -> 5 [label=". [+]"]
-     *
-     *   1 -> 2 [label="\\"]
+     * 
+     *   1 -> 2 [label="\\ [+]"]
      *   1 -> 0 [label="\" [A]"]
      *   1 -> 1 [label=". [+]"]
-     *   2 -> 1 [label=". [+]"]
-     *
-     *   3 -> 4 [label="\\"]
+     *   2 -> 1 [label="[\"\\] [-]"]
+     *   2 -> 8 [label=". [+]"]
+     *   8 -> 2 [label="\\ [+]"]
+     *   8 -> 0 [label="\" [A]"]
+     *   8 -> 1 [label=". [+]"]
+     * 
+     *   3 -> 4 [label="\\ [+]"]
      *   3 -> 0 [label="' [A]"]
      *   3 -> 3 [label=". [+]"]
-     *   4 -> 3 [label=". [+]"]
-     *
+     *   4 -> 3 [label="['\\] [-]"]
+     *   4 -> 9 [label=". [+]"]
+     *   9 -> 4 [label="\\ [+]"]
+     *   9 -> 0 [label="' [A]"]
+     *   9 -> 3 [label=". [+]"]
+     * 
      *   5 -> 6 [label="\\"]
      *   5 -> 0 [label="\\s [A]"]
      *   5 -> 7 [label="= [A+]"]
      *   5 -> 1 [label="\" [A]"]
      *   5 -> 3 [label="' [A]"]
      *   5 -> 5 [label=". [+]"]
+     * 
+     *   6 -> 5 [label="[\"' =\\] [-]"]
      *   6 -> 5 [label=". [+]"]
-     *
+     * 
      *   7 -> 0 [label="\\s [A]"]
      *   7 -> 1 [label="\" [A]"]
      *   7 -> 3 [label="' [A]"]
-     * /*7 -> 7 [label="="]* /
+     *   7 -> 6 [label="\\ [A+]"]
      *   7 -> 5 [label=". [A+]"]
-     *   e [shape=box,label="arc label : current char [actions]\n+: add current char to token\nA: Accept cur token. New token"]
+     *   e [shape=box,label="arc label : current char [actions]\n+: add current char to token\n-: replace last char in token with current char\nA: Accept cur token. New token\nInitial state: 0\nValid end states : 0, 5, 7"]
      * }
      *
      * @author Schplurtz le Déboulonné
@@ -471,24 +481,27 @@ class syntax_plugin_prompt extends DokuWiki_Syntax_Plugin {
      */
     protected function _tokenize( $str ) {
         $trs=array(
-            0 => array( ' ' => 0, "\t" => 0, '"' => 1, "'" => 3, '=' => 7, '\\' => 6, 'def' => 5 ),
-            1 => array( '\\' => 2, '"' => 0, 'def' => 1 ),
+            0 => array( ' ' => 0, "\t" => 0, '"' => 1, "'" => 3, '\\' => 6, '=' => 7, 'def' => 5 ),
+            1 => array( '\\' => 2, '"'  => 0, 'def' => 1 ),
+            //2 => array( '"'  => 1, "\\" => 1, 'def' => 1 ),
             2 => array( 'def' => 1 ),
-            3 => array( '\\' => 4, "'" => 0, 'def' => 3 ),
+            3 => array( '\\' => 4, "'"  => 0, 'def' => 3 ),
+            //4 => array( "'"  => 3, "\\" => 3, 'def' => 3 ),
             4 => array( 'def' => 3 ),
-            5 => array( '\\' => 6, ' ' => 0, "\t" => 0, '=' => 7, '"' => 1, "'" => 3, 'def' => 5),
+            5 => array( '\\' => 6, ' '  => 0, "\t"  => 0, '=' => 7, '"' => 1, "'" => 3, 'def' => 5),
+            //6 => array( '"' => 5, "'" => 5, ' ' => 5, '=' => 5, "\\" => 5, 'def' => 5 ),
             6 => array( 'def' => 5 ),
-            7 => array( ' ' => 0, "\t" => 0, "'" => 3, '"' => 1, 'def' => 5),
+            7 => array( ' ' => 0, "\t" => 0, '"' => 1, "'" => 3, "\\" => 6, 'def' => 5),
         );
         $acs=array(
-            0 => array( 7 => '+', 5 => '+',),
-            1 => array( 1 => '+', 0 => 'A',),
-            2 => array( 1 => '+',),
-            3 => array( 3 => '+', 0 => 'A',),
-            4 => array( 3 => '+',),
-            5 => array( 0 => 'A', 1 => 'A', 3 => 'A', 5 => '+', 7 => 'A+',),
-            6 => array( 5 => '+',),
-            7 => array( 1 => 'A', 3 => 'A', 0 => 'A', 5 => 'A+',),
+            0 => array( 6 => '+', 7 => '+', 5 => '+',),
+            1 => array( 2 => '+', 0 => 'A', 1 => '+',),
+            2 => array( 1 => array( '"' => '-', "\\" => '-', 'def' => '+')),
+            3 => array( 4 => '+', 0 => 'A', 3 => '+',),
+            4 => array( 3 => array( "'" => '-', "\\" => '-', 'def' => '+',)),
+            5 => array( 0 => 'A', 7 => 'A+', 1 => 'A', 3 => 'A', 5 => '+',),
+            6 => array( 5 => array( '"' => '-', "'" => '-', ' ' => '-', '=' => '-', "\\" => '-', 'def' =>'+'),),
+            7 => array( 0 => 'A', 1 => 'A', 3 => 'A', 6 => 'A+', 5 => 'A+',),
         );
 
         $toks=array();
@@ -497,8 +510,13 @@ class syntax_plugin_prompt extends DokuWiki_Syntax_Plugin {
         foreach( str_split($str) as $c ) {
             $to = array_key_exists($c, $trs[$state]) ? $trs[$state][$c] : $trs[$state]['def'];
             if( array_key_exists($to, $acs[$state]) ) {
-                switch($acs[$state][$to]) {
+                $action=$acs[$state][$to];
+                if(is_array($action)) {
+                  $action = array_key_exists($c, $action) ? $action[$c] : $action['def'];
+                }
+                switch($action) {
                 case '+'  : $tok .= $c; break;
+                case '-'  : $tok = substr($tok, 0, -1).$c; break;
                 case 'A'  : $toks[] = $tok; $tok=''; break;
                 case 'A+' : $toks[] = $tok; $tok=$c; break;
                 }
@@ -513,7 +531,7 @@ class syntax_plugin_prompt extends DokuWiki_Syntax_Plugin {
             if ($state == 0 || $state == 5 || $state == 7)
                 $toks[] = $tok;
             else
-                msg( 'In &lt;cli ...&gt;, ignored malformed text «'.hsc($tok).'».', 2, '', '', MSG_USERS_ONLY );
+                msg( 'In &lt;cli ...>, ignored malformed text «'.hsc($tok).'».', 2, '', '', MSG_USERS_ONLY );
         }
 
         return $toks;
