@@ -1,57 +1,49 @@
-====== Command Line Interface (CLI) Plugin  ======
+====== CLI : a Command Line Interface formatter Plugin  ======
 
 ---- plugin ----
 description: Format command line transcripts
-author     : Chris P. Jobling
-email      : C.P.Jobling@Swansea.ac.uk
+author     : Schplurtz le Déboulonné
+email      : Schplurtz-AT-Laposte•net
 type       : syntax
-lastupdate : 2010-08-07
-compatible : 
+lastupdate : 2019-07-15
+compatible : elenor of tsort, detritus, frusterick manners, greebo
 depends    : 
 conflicts  : 
-similar    : code
+similar    : cli
 tags       : code, cli, syntax, highlighting
+downloadurl: https://github.com/schplurtz/dokuwiki-plugin-cli/zipball/master
+bugtracker : https://github.com/schplurtz/dokuwiki-plugin-cli/issues
+sourcerepo : https://github.com/schplurtz/dokuwiki-plugin-cli
+donationurl: 
+screenshot_img : 
 ----
 
-This [[wiki:plugins|plugin]] (or [[doku>plugin:cli]]) brings a Command Line Interface formatter to [[wiki:Dokuwiki]] allowing you to format the output of a transcript say for a user manual or on-line tutorial. It is designed to work with the output of a standard Unix Bash Shell, but should be suitable to document other kinds of CLI interaction, e.g. Windows Command Window, Python and Ruby, Matlab, etc. 
 
-The assumptions made are 
-  - all user commands start with a prompt 
+===== Description =====
+
+This plugin brings a Command Line Interface formatter to Dokuwiki
+allowing you to format the output of a transcript say for a user
+manual or on-line tutorial. It is designed to work with the output
+of a standard Unix Bash Shell, but is suitable to document
+other kinds of CLI interaction, e.g. Windows Command Window, Python
+and Ruby, Matlab, etc.
+
+The assumptions made are
+  - all user commands start with a prompt
   - the CLI prompt will end in a recognizable character (typically '$' or '>')
   - user commands will follow the CLI prompt on the same line
-  - lines that do not start with a prompt are outputs from the CLI((this turns out to be a problem for the Ruby interactive shell //irb// which seems to prefix every line with a prompt!))
+  - user commands may contain a comment introduced by an easily recognizable character (usually '#')
+  - lines that do not start with a prompt are outputs from the CLI.
 
-A key design feature is that it should be possible to display a CLI transcript (e.g. output from a history file or copy of text from a console window) for display with the mimumum of additional markup.  
+A key design feature is that it should be possible to display a CLI transcript (e.g. output from a history file or copy of text from a console window) for display with the mimumum of additional markup.
 
-It is possible to adjust the style of the display using a style sheet. For details refer to [[#style.css]].
+Very complicated prompts can be recognized with regexp; see [[#Configuration and Settings]] for the details. It is possible to adjust the style of the display using a style sheet. For details refer to [[#style]].
 
-==== Notes ====
+===== Installation =====
 
-  * My version of this page -- which could be more recently updated -- can be found [[http://www.cpjobling.org.uk/dokuwiki/plugins:cli|here]]
+Install the plugin using the [[plugin:plugin|Plugin Manager]] and the download URL above, which points to latest version of the plugin. Refer to [[:Plugins]] on how to install plugins manually.
 
-  * Since 7 August 2010 the source for this plugin code has been hosted at GitHub at http://github.com/cpjobling/plugin-cli. To install the plugin when you have ''git'' installed on your DokuWiki server, you just need to:
-
-  cd ../dokuwiki/plugins
-  git clone git://github.com/cpjobling/plugin-cli.git cli 
-
-
-
-
-===== Acknowledgements =====
-
-A similar feature is to be found in [[http://moinmoin.wikiwikiweb.de/|MoinMoin Wiki]] and [[http://www.tiddlywiki.com/|TiddlyWiki]]. The styles are based on those developed for the [[http://www.ee.surrey.ac.uk/Teaching/Unix/|UNIX Tutorial for Beginners]] by Michael Stonebank. The plugin and its documentation are based on lessons learned from the [[http://wiki.splitbrain.org/plugin:tutorial|Plugin Tutorial]] and Christopher Smith's implementation and documentation of the [[http://wiki.splitbrain.org/plugin:boxes|boxes plugin]].
-
-Several improvements suggested by Stephane Chazelas and Andy Webber.
-
-
-
-
-
-
-
-
-
-===== Syntax =====
+===== Examples/Usage =====
 
 A simple Bash Shell interaction:
 
@@ -62,176 +54,304 @@ A simple Bash Shell interaction:
   user@host:~/somedir $ 
   </cli>
 
-Should be rendered:
+{{https://imagizer.imageshack.com/img924/3346/k5o8ZG.png}}
 
-<html>
-<pre class="cli">
-<span class="cli_prompt">user@host:~/somedir $</span> <span class="cli_command">ls</span> <span class="cli_comment"># List current directory</span>
-<span class="cli_output">conf      lang         README        screen.gif  ui</span>
-<span class="cli_output">info.txt  manager.dat  renderer.php  syntax.php</span>
-<span class="cli_prompt">user@host:~/somedir $</span>
-</pre>
-</html>
-
-The full syntax:  
-
-  <cli t=shortcut prompt='prompt ' comment='comment' continue='continue'>
-  transcript
+Next example shows that ''<cli>'' can nest, and shows the shortcut ''<cli type=dos>'' in action.
+  <cli>
+  user@host:~/somedir $ dosemu
+  <cli type=dos>
+  (C) Copyright 1995-2006 Pasquale J. Villani and The FreeDOS Project.
+  D: = LINUX\FS/HOME/USER attrib = READ/WRITE
+  E: = LINUX\FS/MEDIA/CDROM CDROM:1 attrib = READ ONLY
+  "Welcome to dosemu 1.4.0.8!"
+  C:\>dir
+   Volume in drive C is mu/drives/c
+   Directory of C:\
+  
+  TMP                  <DIR>  12-28-17  6:29a
+  CONFIG   SYS           346  06-22-15  1:17a
+  AUTOEXEC BAT           556  06-22-15  1:17a
+           2 file(s)            902 bytes
+           1 dir(s)   2,147,450,880 bytes free
+  C:\>echo pouet
+  pouet
+  C:\>rem This is a remark and does nothing
+  C:\>echo But this rem is not a remark.
+  But this rem is not a remark.
+  C:\>exit
+  </cli>
+  user@host:~/somedir $ echo Back to normal again
+  Back to normal again
+  user@host:~/somedir $
   </cli>
 
-  * //prompt// --- [optional] the prompt used by the CLI. See configuration below for the description of the syntax. If ommitted, the default value is used.
-  * //continue// -- [optional]. The continue prompt used by the CLI. See configuration below for the description of the syntax. If ommitted, the default value is used.
-  * //comment// --- [optional] the comment used by the CLI. See configuration below for the description of the syntax. If ommitted, the default value is used.
-  * //shortcut// --- This is the name of a shortcut, ie a predefined set of //prompt//, //continue// and //comment//.
+{{https://imagizer.imageshack.com/img922/9683/0hAkoB.png}}
 
-Each of the four values may be enclosed in single (''%%'%%'') or double (''"'') quote if they have spaces or tabs in them.
+Custom prompts, when there are no satisfying defaults
+  <cli prompt="SQL> " comment="--" continue="/^\s*[0-9]{1,4}  /">
+  SQL> select
+     2  * --comment
+     3  from
+     4  dual;
+  
+  D
+  -
+  X
+  
+  SQL>
+  </cli>
 
-Values are always set in this order : default, shortcut, individual settings. Ie if you write something like
-''<cli continue="===>" t=irb>'', the continue value is first set from defaults, then overriden by the shortcut and finally overriden by the continue option. So in the end, in this example, continue="===>".
+{{https://imagizer.imageshack.com/img924/3301/IAyO54.png}}
 
-Default values match most unix shells use.
+===== Syntax =====
+
+The full syntax:
+
+  <cli prompt='some prompt' continue='continue prompt' comment='comment' type=shortcut class class...>
+  session transcript
+  </cli>
+
+  * //prompt// --- [optional] the prompt used by the CLI. See configuration below for the description of the syntax. If omitted, the default value is used.
+  * //continue// --- [optional]. The continue prompt used by the CLI. See configuration below for the description of the syntax. If ommitted, the default value is used.  A continue prompt is an alternate prompt that can only happen **immediately after** a line containing a prompt, of any kind.\\ **NB**\\ //continue// can be abbreviated //cont//.
+  * //comment// --- [optional] the comment used by the CLI. See configuration below for the description of the syntax. If omitted, the default value is used.
+  * //shortcut// --- [optional] This is the name of a shortcut, ie a predefined set of //prompt//, //continue// and //comment//. It is not an error to use an undefined shortcut. It simply has no effect. Shortcuts are also useful to customize the visual aspect of the session. See [[#Style]] below. Shortcuts are also used as classname in the html block.\\ **NB**\\ one may write ''type=shortcut'', or ''t=shortcut'', ''language=shortcut'', ''lang=shortcut'', ''lng=shortcut'', ''l=shortcut''.
+  * //class// --- [optional] Class to add to the html block. This allows to create all sorts of custom [[#style]]. 
+
+Each of the values may be enclosed in single (''%%'%%'') or double (''%%"%%'') quote if they have spaces or tabs in them.
+Within single quotes, «\\» stands for «\» and «\'%%%%» stands for «%%'%%».
+Within double quotes, «\\» stands for «\» and «%%\"%%» stands for «%%"%%».
+In unquoted strings, the following characters must be \-escaped to be part of the string : «"», «%%'%%», « » (space), «=» and «\».
+
+There may be spaces around the equal sign.
+The following examples are all equivalent :
+  <cli comment=\"\ >
+  <cli comment =  "\" ">
+  <cli 'comment'='" '>
 
 The opening ''**<cli ... >**'' must all appear on one line.  The transcript contents can appear over as many lines as are needed.
 
-See the plugin in action [[http://www.cpjobling.org.uk/dokuwiki/test:cli|here]]. The sample page shows examples from a number of CLI interfaces, including various shells, dynamic language interpreters and Matlab.
+Values are always set in this order : default, shortcut, individual settings. Ie if you write something like
+''<cli continue="%%===>%%" t=irb>'', the continue value is first set from defaults, then overridden by the shortcut and finally overridden by the value of the continue attribute. So in the end, in this example, continue="%%===>%%".
 
-===== Configuration =====
+Default values match most unix shells use.
 
-The plugin has 6 configuration settings. The first 3 are the defaults prompts and comment marker to use.
 
-  * //prompt// is a either a regexp((enclosed in ''/'', ''='', '','', '';'', ''%'', ''@'', or ''='')) that describe the prompt your CLI uses, or a string that should be equal the last char or chars of the prompt. When a regexp is used, it must match from the start of line to the last char considered part of the prompt.ie ''%%/^.*?> /%%'' is correct, but <del>''%%/> /%%''</del> is not. Note that ''"> "'' is correct as it is a string and not a regexp.
+===== Configuration and Settings =====
+
+The plugin has 9 configuration settings. The first 3 are the default prompts and comment marker to use.
+
+  * //prompt// is a either a regexp((enclosed in <<''/''>>, <<''=''>>, <<'',''>>, <<'';''>>, <<''%''>>, <<''@''>>, <<''=''>>, or <<''#''>>)) that describe the prompt your CLI uses, or a string that should be equal the last char or chars of the prompt. When a regexp is used, it must match from the start of line to the last char considered part of the prompt. Ie ''%%/^.*?> /%%'' is correct, but <del>''%%/> /%%''</del> is not. Note that ''"> "'' is correct as it is a string and not a regexp.
   * //continue// is a description of the continue prompt. It uses the same syntax as //prompt//.
-  * //comment// is a description of the comment marker. Also a string or regexp as. It is matched only to the part of each transcript lines **after** the prompt. For this regexp, the start of line is the first non-prompt char of a command line.
+  * //comment// is a description of the comment marker. Also a string or regexp. It is matched only to the part of each transcript lines **after** the prompt. For this regexp, the start of line is the first non-prompt char of a command line.
 
 If any of these is empty, then the cli plugin uses a harcoded internal value that corresponds to the defaults shown below.
 
 Default values :
-  * //prompt// ''/^.{0,30}?[$%>#] /''\\ That is the shortest string of at most 30 chars that ends in ''$'', ''%'', ''>'' or ''#'' followed by a space.
-  * //continue// ''/^.{0,30}?> /''\\ That is the shortest string of at most 30 char that ends in ''>''.
-  * //comment//  ''/(^#)| #/''\\ That is either a sharp sign at start of line (after the prompt) or a space followed by a sharp sign.
+  * //prompt// ''/^.{0,30}?[$%>#](?:$|\s)/''\\ That is the shortest string of at most 30 chars that ends in ''$'', ''%'', ''>'' or ''#'' followed by a space or end of line.
+  * //continue// ''/^.{0,30}?>(?:$|\s)/''\\ That is the shortest string of at most 30 char that ends in ''>'' followed by a space or end of line.
+  * //comment//  ''/(?:^#)|\s#/''\\ That is either a sharp sign at start of line (right after the prompt) or a space followed by a sharp sign.
 
-The next three settings are used to create named shortcuts. Although default values will work for most of the unix CLI, there are some time when those defaults won't work. For example, the irb [[http://www.ruby-lang.org/|ruby]] shell needs special values for //prompt// and //continue//. Instead of typing each time ''<cli prompt="/^(irb.*?|>)> /" continue="..">'' you may use the previously created irb shortcut : ''<cli t=irb>''. Shortcuts define some replacements for //prompt//, //continue// and //comment//. The syntax to define shortcut this
+The next three settings (namedprompt, namedcontinue, namedcomment) are used to create named shortcuts. Although default values will work for most of the unix CLI, there are some situations when those defaults won't work. For example, the irb [[http://www.ruby-lang.org/|ruby]] shell needs special values for //prompt//, //continue// and //comment//. Instead of typing each time ''<cli prompt='/^(>|irb.*?:\d+:\d+|(?:ruby-?)?\d.*?:\d+\s)>\s/' continue='@^(\?>|irb.*?:\d+:\d+[]\'"/`*>]|(?:ruby-?)?\d.*?:\d+[]\'"/`?]>)\s@' comment='/#(?!{)/' >'', which is tedious and error-prone, you may use the previously created irb shortcut : ''<cli t=irb>''. Shortcuts define some replacements for //prompt//, //continue// and //comment//. The syntax to define shortcut is this :
 
   name:regexp-or-string
 
-The same name must be defined for each of //prompt//, //continue// and //comment//. It is not necessary that values are given for the thre of them. Here are the defaults
+It is not necessary that values are given for the three of them. The defaults below define shortcuts for interactive ruby (irb), cisco-like CLI (nospace), MS dos and powershell (dos), and python (python). 
 
-  * //namedprompt//<code>irb:/^(irb.*?|>)> /</code>
-  * //namedcontinue//<code>irb:..
+  * //namedprompt//<code>
+irb:/(?x) ^ ( > | irb.*?:\d+:\d+ | (?: ruby-?)? \d.*?:\d+\s )>\s /
+nospace:/^.{0,30}?[$%>#]/
+dos:/^[A-Z]:.{0,28}?>/
+</code>
+  * //namedcontinue//<code>
+irb:@(?x) ^ ( \?> | irb.*?:\d+:\d+[]'"/`*>] | (?: ruby-?)? \d.*?:\d+[]'"/`?]> )\s @
 R:/^\+ /
 python:...
+nospace:undef continue
 </code>
-  * //namedcomment//<code></code>
-
-As you can see, for python, you only have to define a //continue// replacement, as the standard prompt definition will also catch the python prompt.
-
-You may also want to review the default colour scheme in [[#style.css]] to ensure it is appropriate for your wiki.
-
-
-
-===== Installation =====
-==== Sources: ====
-
-  * Current: [[http://github.com/downloads/cpjobling/plugin-cli/plugin-cli.zip|zip format (5k)]], [[http://github.com/downloads/cpjobling/plugin-cli/plugin-cli.zip|tar.gz format (4k)]]
-
-If your wiki uses the [[plugin:plugin|plugin manager]] you can use them with the links above to install the plugin.  
-
-To install the plugin manually, download the source to your plugin folder, ''lib/plugins'' and extract its contents.  That will create a new plugin folder, ''lib/plugins/cli'', and install the plugin.
-
-The folder will contain:
-  style.css      all the cli styles
-  syntax.php     plugin script
-  info.txt       info file needed by newer dokuwiki
-  conf           configuration directory
-  lang           translations of string for dokuwiki configuration page
-
-The plugin is now installed.
-
-
-
-
-
-
-===== Details =====
-
-==== syntax.php ====
-In older version, the plugin was made of only this file, and so the file was presented here. Now that configuration and language files are necessary for the plugin to work there is no point in presenting syntax.php alone here. You should use git or download the archive instead.
-
-==== style.css ====
-
-These may be modified to suit your own requirements.
-
-<code css>
-/* plugin:cli */
-
-.cli_output {
-	color: blue;
-}
-
-.cli_comment {
-	color: brown;
-}
-
-.cli_prompt {
-	color: green;
-}
-
-.cli_command {
-	color: red;
-}
-
-// nested CLI
-pre.cli pre.cli {
-	background-color: #F8F8F8;
-}
-
-/* end plugin:cli */
+  * //namedcomment//<code>
+irb:/#(?!{)/
+dos:/^\s*rem(\s+|$)/
 </code>
 
+As you can see, for python, you only have to define a //continue// replacement, as the standard prompt definition will also catch the python prompt. irb needs to replace all the three definitions. The continue prompt ''undef continue'' is not special at all; this definition replaces the standard definition and will (most probably) never happen in real life. So it actually disables the continue prompt.
 
-===== Revision History =====
+The last set of configuration options, //odtbackground//, //odtborderwidth// and //odtbordercolor// are used when exporting to odt with the help of the [[dw>plugin:odt|odt]] plugin.
 
-  * 2007-09-10 --- First release
-  * 2008-13-02 --- Several improvements to lexing and white space handling as suggested by Stephane Chazelas; continuation prompt support and whitespace handling improvements added by Any Webber.
-  * 2010-07-08 --- Hosting moved to GitHub. Note, hosting of examples at http://www.cpjobling.org.uk may not be stable.
-  * 2011-01-30 --- nesting, config, regexp support, all params read from %%<cli>%%, new precedence for continue_prompt. Schplurtz le déboulonné
+==== odt support ====
 
-===== To Do =====
- 
-  * It would be nice to support end of line markers for long command strings
-  * Doesn't work for transcripts that have no prompt: e.g. executable scripts. Better to use the ''<code>'' tag for these.
+When exporting a page to odt with the [[dw>plugin:odt|odt]] plugin, font colours are taken from the CSS **default** style. Computer output is blue, prompt is green, user input red and comments orange. You may change the default colours for both html and odt by [[#style|creating a custom style]], The background, and background border are controlled by the 3 configuration options //odtbackground//, //odtborderwidth// and //odtbordercolor//.
 
-===== Bugs =====
+  * //odtbackground// is the Background colour. By default, the same colour as the one used for //<code>// or //<file>// is used : ''#f7f9fa''.
+  * //odtborderwidth// is the border width. by default, the same as //<code>// or //<file>// : ''0.06pt''
+  * //odtbordercolor// is the border colour. by default, the same as //<code>// or //<file>// : ''#8cacbb''
 
-  * Care needed for CLI's that use > to end a prompt -- done.
-  * Doesn't handle continuation prompts in shells that allow multi-line input. -- done (thanks to Andy Webber)
-  * Ruby's multiple output line decorators are likely to cause problems.
-  * Bound to be others ... this is my first DokuWiki plugin (actually it's my first attempt at PHP coding ^_^)
-  * following codes display right with defaults bu only because prompt is limited in size...
-<code>
-<cli prompt="#">
-# rpm -ivh darcs-1.0.9-3.fc6.i386.rpm
-Preparing...                ########################################### [100%]
-   1:darcs                  ########################################### [100%]
+==== style ====
+
+You may customize the colours of the text and also the border, background, padding, margin, font etc... well, pretty much anything customizable with CSS. Where to create yor CSS files is documented in [[doku>devel:css#user_styles|user styles]]. This example should work with most dokuwiki [[dw>template|templates]].
+
+<code css userstyle.css>
+body div.dokuwiki  pre.cli {
+  /* This changes the default style */
+  background-color: #000;
+  span.cli_prompt  { color: red }
+  span.cli_command { color: white }
+  span.cli_comment { color: grey }
+  span.cli_output  { color: yellow }
+  /* retro green and retro green with prompt in reverse video */ 
+  &.retro-green, div.retro-green {
+    background-color: #1e2e15;
+    span.cli_prompt  { color: #0bc81b }
+    span.cli_command { color: #8fe35f }
+    span.cli_comment { color: #69a845 }
+    span.cli_output  { color: #93eb60 }
+    &.reverse {
+      span.cli_prompt  { color: #1e2e15; background-color: #93eb60; font-weight: bold }
+    }
+  }
+  /* retro ochre and retro ochre with prompt in reverse video */ 
+  &.retro-ochre, div.retro-ochre {
+    background-color: #2b2514;
+    span.cli_prompt  { color: #ff8a11 }
+    span.cli_command { color: #ffbf0e }
+    span.cli_comment { color: #a87f0d }
+    span.cli_output  { color: #de7407 }
+    &.reverse {
+      span.cli_prompt  { color: #2b2514; background-color: #de7407; font-weight: bold }
+    }
+  }
+  /* Just for fun, but should be useless */
+  &.uppercase, div.uppercase {
+    text-transform: uppercase;
+  }
+}
+</code>
+
+Here are some examples
+  <cli>
+  me@mycomputer (0) $ ls # list files
+  README			i			prompt-plugin.txt
+  basic-usage.png		lang			style.css
+  conf			plugin.info.txt		syntax.php
+  dos-example.png		prompt-examples.txt
+  </cli>
+
+{{https://imagizer.imageshack.com/img921/2705/8iB6AN.png}}
+
+  <cli green uppercase>
+  me@mycomputer (0) $ ls -adtr * # list files with weid args
+  README			i			prompt-plugin.txt
+  basic-usage.png		lang			style.css
+  conf			plugin.info.txt		syntax.php
+  dos-example.png		prompt-examples.txt
+  </cli>
+
+{{https://imagizer.imageshack.com/img922/3950/HWLFjg.png}}
+
+  <cli type=dos retro-ochre reverse>
+  C:\>dir
+   Volume in drive C is mu/drives/c
+   Directory of C:\
+  TMP                  <DIR>  12-28-17  6:29a
+  CONFIG   SYS           346  06-22-15  1:17a
+  AUTOEXEC BAT           556  06-22-15  1:17a
+           2 file(s)            902 bytes
+           1 dir(s)   2,147,450,880 bytes free
+  C:\>echo pouet
+  pouet
+  C:\>rem This is a remark and does nothing
+  </cli>
+
+{{https://imagizer.imageshack.com/img924/6294/Jqebtx.png}}
+
+-----------------
+
+A few technical details.
+''<cli>'' are rendered as html ''<pre>'' tags with ''cli'' class. Classe from the ''type'' attribute is added as well as optional classes.
+
+  <cli type=dos retro-ochre reverse>
+is rendered as
+<code html>
+<pre class="cli dos  retro-ochre reverse">
+<!--        ^   ^     additional classes
+            |   |
+            |   +---- type=dos. added as a class
+            |
+            +-------- class cli is always present
+-->
+</code>
+
+A full example :
+
+<code xml>
+<cli retro-ochre>
+me@mycomputer (0) $ dosemu # let's go back in the 80s
+<cli type=dos>
+C:>rem This is a remark and does nothing
+C:>echo pouet
+pouet
+C:>exit
+</cli>
+me@mycomputer (0) $ 
 </cli>
 </code>
 
-===== Comments Please =====
+Will produce this html code
 
-I modified the **_render_conversation** function to //remove// first and last blank lines, otherwise it produces two //blank excess output spans//.
-<code php>
-if ( trim($lines[0]) == "" ) unset( $lines[0] );
-if ( trim($lines[count($lines)]) == "" ) unset( $lines[count($lines)] );
+<code html>
+<pre class="cli   retro-ochre">
+<span class="cli_prompt">me@mycomputer (0) $ </span><span class="cli_command">dosemu</span><span class="cli_comment"> # let's go back in the 80s</span>
+<div class="dos ">
+<span class="cli_prompt">C:&gt;</span><span class="cli_comment">rem This is a remark and does nothing</span>
+<span class="cli_prompt">C:&gt;</span><span class="cli_command">echo pouet</span>
+<span class="cli_output">pouet</span>
+<span class="cli_prompt">C:&gt;</span><span class="cli_command">exit</span>
+</div>
+<span class="cli_prompt">me@mycomputer (0) $ </span><span class="cli_command">exit</span>
+</pre>
 </code>
-This is just a quick hack and needs more afterthought, of course.
 
-I also did not like the "empty lines got removed" effect, thus the **preg_split** line was also modified:
 
-<code php>
-$lines = preg_split('/\n\r|\n|\r/',$match);
-</code>
+===== Development =====
 
-The previous comment still applies.
 
-Added to new release ... CPJ
+=== Change Log ===
+
+{{rss>https://github.com/schplurtz/dokuwiki-plugin-prompt/commits/master.atom date}}
+
+
+=== ToDo/Wish List ===
+
+Please, create an issue on [[https://github.com/schplurtz/dokuwiki-plugin-prompt/issues|github]]
+
+===== FAQ =====
+
+
+===== Discussion =====
+
+Please, discuss on the [[https://forum.dokuwiki.org/forum|forum]]
+
+
+
+-----------------------
+
+
+===== Acknowledgements =====
+
+This plugin was originally written in 2007 by
+[[https://github.com/cpjobling|Chris P. Jobling]].  He was inspired
+by a similar feature found in [[http://moinmoin.wikiwikiweb.de/|MoinMoin
+Wiki]] and [[http://www.tiddlywiki.com/|TiddlyWiki]]. The styles
+were based on those developed for the
+[[http://www.ee.surrey.ac.uk/Teaching/Unix/|UNIX Tutorial for
+Beginners]] by Michael Stonebank. The plugin and its documentation
+were based on lessons Chris learned from the
+[[http://wiki.splitbrain.org/plugin:tutorial|Plugin Tutorial]] and
+Christopher Smith's implementation and documentation of the
+[[http://wiki.splitbrain.org/plugin:boxes|boxes plugin]].
+
+Several improvements suggested by Stephane Chazelas and Andy Webber.
+
+More than 12 years after its creation, this plugin was
+modernized by Schplurtz le Déboulonné who added a few features.
+
 
