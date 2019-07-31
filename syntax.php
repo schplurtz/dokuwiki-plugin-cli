@@ -73,9 +73,9 @@ class syntax_plugin_prompt extends DokuWiki_Syntax_Plugin {
             $this->stack[0][self::CONT]=$this->_toregexp($s);
         if(''!=($s=$this->getConf('comment')))
             $this->stack[0][self::COMMENT]=$this->_toregexp($s, 1);
-        $this->_loadnamedparam($this->getConf('namedprompt'), self::PROMPT);
-        $this->_loadnamedparam($this->getConf('namedcontinue'), self::CONT);
-        $this->_loadnamedparam($this->getConf('namedcomment'), self::COMMENT);
+        $this->_parsenamedparam($this->getConf('namedprompt'), self::PROMPT);
+        $this->_parsenamedparam($this->getConf('namedcontinue'), self::CONT);
+        $this->_parsenamedparam($this->getConf('namedcomment'), self::COMMENT);
         $this->init = true;
     }
     /**
@@ -383,19 +383,19 @@ class syntax_plugin_prompt extends DokuWiki_Syntax_Plugin {
         }
     }
     /**
-     * load named prompts from config
+     * parse named prompts or comments from config
      *
      * @author Schplurtz le Déboulonné <Schplurtz@laposte.net>
      * @param  $s             String        The configuration value
-     * @param  $type          Int           The index of the config
+     * @param  $kind          Int           One of self::PROMPT, CONT, COMMENT
      * @return void
      */
-    protected function _loadnamedparam($s, $type) {
+    protected function _parsenamedparam($s, $kind) {
         foreach(preg_split('/\n\r|\n|\r/',$s) as $line){
             if(''==$line)
                 continue;
             list($nom,$val)=explode(':', $line, 2);
-            $this->namedpcc[$nom][$type]=($type == self::COMMENT) ? $this->_toregexp($val,1) : $this->_toregexp($val);
+            $this->namedpcc[$nom][$kind]=$this->_toregexp($val, $kind == self::COMMENT);
         }
     }
 
