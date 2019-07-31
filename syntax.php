@@ -66,7 +66,10 @@ class syntax_plugin_prompt extends DokuWiki_Syntax_Plugin {
         // loaded. Only when the syntax is really met and there
         // is need to parse should we do all this. It's not
         // even needed to render() a conversation.
-        $this->stack=array(array('/^.{0,30}?[$%>#] /', '/^.{0,30}?> /', '/((^#)| #)/'));
+
+        // hardcoded defaults
+        $this->stack=array(array('/^.{0,30}[$%>#](?:$|\\s)/', '/^.{0,30}>(?:$|\\s)/', '/(?:^#)|\\s#/'));
+        // override defaults with user config if exists.
         if(''!=($s=$this->getConf('prompt')))
             $this->stack[0][self::PROMPT]=$this->_toregexp($s);
         if(''!=($s=$this->getConf('continue')))

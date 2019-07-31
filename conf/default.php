@@ -5,14 +5,22 @@
  * @author Schplurtz le Déboulonné <Schplurtz@laposte.net>
  */
 
-$conf['prompt'] = '/^.{0,30}?[$%>#](?:$|\\s)/';
-$conf['continue'] = '/^.{0,30}?>(?:$|\\s)/';
+$conf['prompt'] = '/^.{0,30}[$%>#](?:$|\\s)/';
+$conf['continue'] = '/^.{0,30}>(?:$|\\s)/';
 $conf['comment'] = '/(:?^#)|\\s#/';
-$conf['namedprompt'] = 'irb:/^(irb.*?|>)> /
-nospace:/^.{0,30}?[$%>#]/
-dos:/^[A-Z]:.{0,28}?>/';
-$conf['namedcontinue'] = 'irb:..
-R:/^\\+ /
+$conf['namedprompt'] = '
+irb:/(?x) ^ ( > | irb.*?:\\d+:\\d+ | (?: ruby-?)? \\d.*?:\\d+\\s )>\\s /
+nospace:/^.{0,30}[$%>#]/
+dos:/^[A-Z]:.{0,28}>/
+';
+$conf['namedcontinue'] = '
+irb:@(?x) ^ ( \\?> | irb.*?:\\d+:\\d+[]\'"/`*>] | (?: ruby-?)? \\d.*?:\\d+[]\'"/`?]> )\\s @
+R:/^\+ /
 python:...
-nospace:/^.{0,30}?[$%>#]/';
-$conf['namedcomment'] = 'dos:/^\\s*rem(\\s+|$)/';
+dos:undef continue
+nospace:undef continue
+';
+$conf['namedcomment'] = '
+irb:/#(?!{)/
+dos:/^\s*rem(\s+|$)/
+';
