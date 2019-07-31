@@ -12,6 +12,9 @@ $lang['comment']  ='Comment regexp or string. Default is ‘/(^#)| #/’. It mat
 $lang['namedprompt']='named prompt list, one per line, using this format : "name:regexp or string"<br />Name may then be used as shortcut in wiki pages this way <br /><tt>&lt;cli t=name&gt;</tt><br />It is quite shorter than <br /><tt>&lt;cli prompt="blabla" continue="blibli" comment="zap"&gt;</tt>';
 $lang['namedcontinue']='named secondary prompt list, one per line, using this format : "name:regexp or string"';
 $lang['namedcomment']='named comment list, one per line, using this format : "name:regexp or string"';
+$lang['odtbackground']  = 'When exporting pages to ODT or PDF format with the <a href="https://www.dokuwiki.org/plugin:odt">odt</a> plugin, background color of the <tt>&lt;cli></tt> blocks. The default value <tt>#f7f9fa</tt> is the same as the one used by the <tt>&lt;code></tt> blocs.';
+$lang['odtborderwidth'] = 'When exporting pages to ODT or PDF format with the <a href="https://www.dokuwiki.org/plugin:odt">odt</a> plugin, width in a CSS <a href="https://developer.mozilla.org/en-US/docs/Web/CSS/length">unit length</a>, usually point «pt», of the border of the <tt>&lt;cli></tt> blocs. Default value : 0.06pt';
+$lang['odtbordercolor'] = 'When exporting pages to ODT or PDF format with the <a href="https://www.dokuwiki.org/plugin:odt">odt</a> plugin, bordercolor of the <tt>&lt;cli></tt> blocs. Default is #8cacbb';
 
 
 //Setup VIM: ex: et ts=4 :

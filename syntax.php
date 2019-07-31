@@ -138,7 +138,6 @@ class syntax_plugin_prompt extends DokuWiki_Syntax_Plugin {
             $this->_init();
             $args = substr(rtrim($match), 4, -1); // strip '<cli' and '>'
             $params=$this->_parseparams($args);
-            // process args to CLI tag: sets $comment_str and $prompt_str and $prompt_cont
             $type=$params['type'];
             $this->current=array();
             $this->current[self::PROMPT]=($params['prompt']) ?
@@ -164,15 +163,15 @@ class syntax_plugin_prompt extends DokuWiki_Syntax_Plugin {
             // return nesting level and type
             return array($state, count($this->stack) - 2, $this->current[self::TYPE]);
         case DOKU_LEXER_UNMATCHED :
-            // return 3 elements.
-            return array( $state, $this->_parse_conversation($match), null );
+            // return parsed conversation and type
+            return array( $state, $this->_parse_conversation($match), $this->current[self::TYPE]);
         case DOKU_LEXER_EXIT :
-              array_pop($this->stack);
-              $this->current=end($this->stack);
-              // return same nested level as DOKU_LEXER_ENTER. return 3 elements.
-              return array($state, count($this->stack) -1, null);
+            $top=array_pop($this->stack);
+            $this->current=end($this->stack);
+            // return same nested level as DOKU_LEXER_ENTER and type
+            return array($state, count($this->stack) -1, $top[self::TYPE]);
         }
-        return array();
+        return array(); //not reached
     }
     /**
      * analyze the conversation.
@@ -220,13 +219,12 @@ class syntax_plugin_prompt extends DokuWiki_Syntax_Plugin {
      *
      * @author Schplurtz le Déboulonné <Schplurtz@laposte.net>
      * @param  $line    String   the original line
-     * @param  $matches String   The current recognised prompt
+     * @param  $prompt  String   The current recognised prompt
      * @return String[]          the 3 components of the line : prompt, command, comment
      */
     protected function _parseline( $line, $prompt ) {
         $comment='';
         $index=strlen($prompt);
-        //$prompt = substr($line, 0, $index);
         $comcom = substr( $line, $index );
         $ar=preg_split($this->current[self::COMMENT], $comcom, 2, PREG_SPLIT_DELIM_CAPTURE);
         if( isset($ar[1]) ) {
@@ -237,7 +235,10 @@ class syntax_plugin_prompt extends DokuWiki_Syntax_Plugin {
     }
 
     /**
-     * Render output. Call specialized methods.
+     * Render output. step by step generate html.
+     * When generation is complete, check mode : if mode is xhtml, then
+     * adds generate text to document. If mode is odt, then call odt renderer
+     * that will convert html to odt.
      *
      * @param string         $mode      Renderer mode (supported modes: xhtml)
      * @param Doku_Renderer  $renderer  The renderer
@@ -245,146 +246,81 @@ class syntax_plugin_prompt extends DokuWiki_Syntax_Plugin {
      * @return bool If rendering was successful.
      */
     public function render($mode, Doku_Renderer $renderer, $data) {
-        if($mode == 'xhtml'){
-            $this->_render_xhtml( $renderer, $data );
-             return true;
+        if($mode !== 'xhtml' && $mode !== 'odt' && $mode !== 'odt_pdf') {
+            return false;
         }
-        elseif( $mode == 'odt' || $mode == 'odt_pdf' ) {
-            $this->_render_odt( $renderer, $data );
-            return true;
-        }
-        return false;
-    }
-
-    /**
-     * render conversation as xhtml
-     *
-     * @author Chris P. Jobling <C.P.Jobling@Swansea.ac.uk>
-     * @author Schplurtz le Déboulonné <Schplurtz@laposte.net>
-     * @param  $renderer Doku_Renderer   a renderer object
-     * @param  $data     mixed[]         associated data
-     * @return void
-     */
-    protected function _render_xhtml(Doku_Renderer $renderer, $data) {
-        list($state, $thing) = $data;
+        list($state, $thing, $type) = $data;
         switch ($state) {
         case DOKU_LEXER_ENTER :
             // $thing is nesting level here.
-            // only create one <pre> element for all the nested cli
-            if( 0 === $thing )
-                $renderer->doc .= '</p><pre class="cli code">';
-            else
-                $renderer->doc .= DOKU_LF;
+            // for outer <cli>, initialize string.
+            // for nested <cli>, add a div.
+            if( 0 == $thing ) {
+                $this->genhtml = '';
+            }
+            else {
+                $this->genhtml .= "<div class='$type'>";
+                if( $mode != 'xhtml' ) // odt needs an additional CR. bug ?
+                     $this->genhtml .= DOKU_LF;
+            }
         break;
         case DOKU_LEXER_UNMATCHED :
-            // Here $thing is an array of parsed lines.
+            // Here $thing is an array of parsed lines as returned by _parseline
             $not_first_line=false;
             foreach( $thing as $line ) {
                 if($not_first_line)
-                    $renderer->doc .= DOKU_LF;
+                    $this->genhtml .= DOKU_LF;
                 else
                     $not_first_line=true;
                 if(is_array($line)) {
-                    $renderer->doc .= '<span class="cli_prompt">' . $renderer->_xmlEntities($line[0]) . "</span>";
+                    $this->genhtml .= '<span class="cli_prompt">' . hsc($line[0]) . "</span>";
                     if( '' != $line[1] )
-                        $renderer->doc .= '<span class="cli_command">' . $renderer->_xmlEntities($line[1]) . "</span>";
+                        $this->genhtml .= '<span class="cli_command">' . hsc($line[1]) . "</span>";
                     if( '' != $line[2] )
-                        $renderer->doc .= '<span class="cli_comment">' . $renderer->_xmlEntities($line[2]) . "</span>";
+                        $this->genhtml .= '<span class="cli_comment">' . hsc($line[2]) . "</span>";
                 } else {
-                    $renderer->doc .= '<span class="cli_output">' . $renderer->_xmlEntities($line) . "</span>";
+                    $this->genhtml .= '<span class="cli_output">' . hsc($line) . "</span>";
                 }
             }
         break;
         case DOKU_LEXER_EXIT :
             // $thing is nesting level here.
             // only close <pre> if we're closing the outermost <cli>
-            if( 0 === $thing )
-                $renderer->doc .= "</pre><p>";
-            else
-                $renderer->doc .= DOKU_LF;
-        break;
-        }
-    }
-    /**
-     * render conversation as odt.
-     *
-     * @author Schplurtz le Déboulonné <Schplurtz@laposte.net>
-     * @param  $renderer Doku_Renderer   a renderer object
-     * @param  $data     mixed[]         associated data
-     * @return void
-     */
-    protected function _render_odt(Doku_Renderer $renderer, $data) {
-        /*
-         * Because of bug and lack of styling option in generateSpansfromHTMLCode()
-         * and because preformattedtext() does not allow to select some style,
-         * I have to do it myself. Problem is that although I select a monospace
-         * font in my style, multiple spaces are still replaced as one single
-         * space.
-         *
-         * The hackish solution is to convert sequences of 2 ordinary spaces to
-         * sequences of space+nbspace (\u0020\u00A0). so for example this string
-         * '       ' will result in ' _ _ _ ' where _ stands for nbspace \u00A0.
-         * libreoffice/xml/whatever can't replace the spaces in this situation.
-         *
-         * I don't expect this hack to break soon, or ever, since it relies on
-         * the very nature of the nbspace char.
-         *
-         * Schplurtz rulez !
-         */
-        list($state, $thing) = $data;
-        switch ($state) {
-        case DOKU_LEXER_ENTER :
-            // $thing is nesting level here.
             if( 0 === $thing ) {
-                // Just open once. nested cli do not need to reopen
-                $renderer->p_close();
-                $renderer->_odtParagraphOpenUseProperties(self::STYLE);
-            }
-            else {
-                $renderer->linebreak();
-            }
-        break;
-        case DOKU_LEXER_UNMATCHED :
-            // here $thing is an array of parsed lines.
-            $spnbsp="  "; // ! You might not notice, the second space is really \u00A0
-            $not_first_line=false;
-            foreach( $thing as $line ) {
-                if($not_first_line)
-                    $renderer->linebreak();
-                else
-                    $not_first_line=true;
-                if(is_array($line)) {
-                    $renderer->_odtSpanOpenUseProperties(array('color' => 'green'));
-                    $renderer->cdata(str_replace('  ', $spnbsp, $line[0]));
-                    $renderer->_odtSpanClose();
-                    if( '' != $line[1] ) {
-                        $renderer->_odtSpanOpenUseProperties(array('color' => 'red'));
-                        $renderer->cdata(str_replace('  ', $spnbsp, $line[1]));
-                        $renderer->_odtSpanClose();
+                if( $mode == 'xhtml' ) {
+                    $renderer->doc .= "</p><pre class='cli $type'>";
+                    $renderer->doc .= $this->genhtml;
+                    $renderer->doc .= '</pre><p>';
+                }
+                else {
+                    if(!$renderer->styleExists('Command Line Interface')) {
+                        $style=array(//FIXME: list of style porperties is in lib/plugins/odt/ODT/styles/ODTParagraphStyle.php
+                                     'style-name' => 'Command Line Interface',
+                                     'style-display-name' => 'Command Line Interface',
+                                     'background-color' => $this->getConf('odtbackground'),
+                                     'border' => $this->getConf('odtborderwidth').' solid '.
+                                                 $this->getConf('odtbordercolor'),
+                                    );
+                        $renderer->createParagraphStyle( $style );
                     }
-                    if( '' != $line[2] ) {
-                        $renderer->_odtSpanOpenUseProperties(array('color' => 'brown'));
-                        $renderer->cdata(str_replace('  ', $spnbsp, $line[2]));
-                        $renderer->_odtSpanClose();
-                    }
-                } else {
-                    $renderer->_odtSpanOpenUseProperties(array('color' => 'blue'));
-                    $renderer->cdata(str_replace('  ', $spnbsp, $line));
-                    $renderer->_odtSpanClose();
+                    $options=array();
+                    // see https://github.com/LarsGit223/dokuwiki-plugin-odt/commit/19f42d58f1d97758a2ccbac38aae7253826eb59a
+                    $options ['escape_content'] = 'false';
+                    $options ['space'] = 'preserve';
+                    $options ['media_selector'] = 'screen';
+                    $options ['p_style'] = 'Command Line Interface';
+                    $options ['element'] = 'pre';
+                    $renderer->generateODTfromHTMLCode($this->genhtml, $options);
                 }
             }
-        break;
-        case DOKU_LEXER_EXIT :
-            // thing is nesting level here.
-            if( 0 === $thing ) {
-                $renderer->p_close();
-            }
-            else {
-                $renderer->linebreak();
-            }
+            else // closing inner <cli>
+                $this->genhtml .= '</div>';
+                if( $mode != 'xhtml' ) // odt needs an additional CR. bug ?
+                     $this->genhtml .= DOKU_LF;
         break;
         }
     }
+
     /**
      * parse named prompts or comments from config
      *
@@ -572,7 +508,7 @@ class syntax_plugin_prompt extends DokuWiki_Syntax_Plugin {
                 $values['type']=$toks[$i];
             }
         }
-        //printf( "n=%2d i=%2d tok[i]='%s'\n", $n, $i, array_key_exists($i, $toks)? $toks[$i]:'');
+        // add 1 or 2 remaining tokens to type
         if( $n ) for( ; $i < $n; ++$i ) {
             if( $values['type'] !== false ) {
                 msg( 'In &lt;cli ...&gt;, «'.hsc($toks[$i]).'» override previously defined type «'. hsc($values['type']).'».', 2, '', '', MSG_USERS_ONLY );

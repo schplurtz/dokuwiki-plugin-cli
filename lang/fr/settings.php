@@ -12,6 +12,9 @@ $lang['comment']='Chaine ou expression régulière marquant le début d\'un comm
 $lang['namedprompt']='liste d\'invites nommées, une par ligne, sous la forme "nom:expression-régulière ou chaine"<br />Le nom peut ensuite être utilisé dans une page de cette manière :<br /><tt>&lt;cli t=nom&gt;</tt><br />ce qui est plus court que<br /><tt>&lt;cli prompt="blabla" continue="blibli" comment="zap"&gt;</tt>';
 $lang['namedcontinue']='Liste d\'invites secondaires nommées, une par ligne, sous la forme "nom:expression-régulière ou chaine".';
 $lang['namedcomment']='liste de commentaire nommés, un par ligne, sous la forme "expression-régulière ou chaine"';
+$lang['odtbackground']  = 'Pour l\'export en ODT ou PDF via le greffon <a href="https://www.dokuwiki.org/plugin:odt">odt</a>, couleur du fond pour les blocs <tt>&lt;cli></tt>. La valeur par défaut <tt>#f7f9fa</tt> est la même que celle des blocs <tt>&lt;code></tt>.';
+$lang['odtborderwidth'] = 'Pour l\'export en ODT ou PDF via le greffon <a href="https://www.dokuwiki.org/plugin:odt">odt</a>, largeur dans une <a href="https://developer.mozilla.org/fr/docs/Web/CSS/length">unité de distance CSS valable</a>, généralement le point «pt», de la bordure des blocs <tt>&lt;cli></tt>. Valeur par défaut : 0.06pt';
+$lang['odtbordercolor'] = 'Pour l\'export en ODT ou PDF via le greffon <a href="https://www.dokuwiki.org/plugin:odt">odt</a>, couleur de la bodure des bloc <tt>&lt;cli></tt>. Valeur par défaut #8cacbb';
 
 
 //Setup VIM: ex: et ts=4 :

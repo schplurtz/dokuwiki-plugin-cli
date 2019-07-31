@@ -24,3 +24,6 @@ $conf['namedcomment'] = '
 irb:/#(?!{)/
 dos:/^\s*rem(\s+|$)/
 ';
+$conf['odtbackground']  = '#f7f9fa';
+$conf['odtborderwidth'] = '0.06pt';
+$conf['odtbordercolor'] = '#8cacbb';
