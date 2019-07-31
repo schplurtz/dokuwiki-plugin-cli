@@ -18,12 +18,12 @@ class syntax_plugin_prompt extends DokuWiki_Syntax_Plugin {
     const CONT=1;
     const COMMENT=2;
     const TYPE=3;
+    const STYLE=4;
     // prompt, continue and comment stack
     protected $stack;
     protected $namedpcc=array();
     protected $init=false;
     protected $genhtml='';
-    protected $type='';
 
     function __construct() {
         // Delay init until we actually need to parse some <cli>
@@ -68,7 +68,7 @@ class syntax_plugin_prompt extends DokuWiki_Syntax_Plugin {
         // even needed to render() a conversation.
 
         // hardcoded defaults
-        $this->stack=array(array('/^.{0,30}[$%>#](?:$|\\s)/', '/^.{0,30}>(?:$|\\s)/', '/(?:^#)|\\s#/'));
+        $this->stack=array(array('/^.{0,30}[$%>#](?:$|\\s)/', '/^.{0,30}>(?:$|\\s)/', '/(?:^#)|\\s#/', '', ''));
         // override defaults with user config if exists.
         if(''!=($s=$this->getConf('prompt')))
             $this->stack[0][self::PROMPT]=$this->_toregexp($s);
@@ -136,40 +136,54 @@ class syntax_plugin_prompt extends DokuWiki_Syntax_Plugin {
         switch ($state) {
         case DOKU_LEXER_ENTER :
             $this->_init();
+            $level=count($this->stack) - 1;
             $args = substr(rtrim($match), 4, -1); // strip '<cli' and '>'
             $params=$this->_parseparams($args);
             $type=$params['type'];
+            $style=$params['style'];
             $this->current=array();
-            $this->current[self::PROMPT]=($params['prompt']) ?
-                $this->_toregexp($params['prompt'])
-                : (($type && ($t=$this->namedpcc[$type][self::PROMPT])) ?
-                    $t
-                    : $this->stack[0][self::PROMPT]
-                );
-            $this->current[self::CONT]=($params['continue']) ?
-                $this->_toregexp($params['continue'])
-                : (($type && ($t=$this->namedpcc[$type][self::CONT])) ?
-                    $t
-                    : $this->stack[0][self::CONT]
-                );
-            $this->current[self::COMMENT]=($params['comment']) ?
-                $this->_toregexp($params['comment'],1)
-                : (($type && ($t=$this->namedpcc[$type][self::COMMENT])) ?
-                    $t
-                    : $this->stack[0][self::COMMENT]
-                );
-            $this->current[self::TYPE]=$type;
+            // nested cli that only define style inherit prompts
+            if( $level && !empty($style) && ! $type && ! $params['prompt']  && ! $params['continue']  && ! $params['comment'] ) {
+                $last=end($this->stack);
+                $this->current[self::PROMPT]=$last[self::PROMPT];
+                $this->current[self::CONT]=$last[self::CONT];
+                $this->current[self::COMMENT]=$last[self::COMMENT];
+                $this->current[self::TYPE]=$last[self::TYPE];
+            }
+            else {
+                $this->current[self::PROMPT]=($params['prompt']) ?
+                    $this->_toregexp($params['prompt'])
+                    : (($type && ($t=$this->namedpcc[$type][self::PROMPT])) ?
+                        $t
+                        : $this->stack[0][self::PROMPT]
+                    );
+                $this->current[self::CONT]=($params['continue']) ?
+                    $this->_toregexp($params['continue'])
+                    : (($type && ($t=$this->namedpcc[$type][self::CONT])) ?
+                        $t
+                        : $this->stack[0][self::CONT]
+                    );
+                $this->current[self::COMMENT]=($params['comment']) ?
+                    $this->_toregexp($params['comment'],1)
+                    : (($type && ($t=$this->namedpcc[$type][self::COMMENT])) ?
+                        $t
+                        : $this->stack[0][self::COMMENT]
+                    );
+                $this->current[self::TYPE]=$type;
+            }
+            $this->current[self::STYLE]=$style;
             $this->stack[]=$this->current;
-            // return nesting level and type
-            return array($state, count($this->stack) - 2, $this->current[self::TYPE]);
+            // return nesting level and type and style
+            return array($state, count($this->stack) - 2, $type, $style);
         case DOKU_LEXER_UNMATCHED :
-            // return parsed conversation and type
-            return array( $state, $this->_parse_conversation($match), $this->current[self::TYPE]);
+            // return parsed conversation and type and style
+            $top=end($this->stack);
+            return array( $state, $this->_parse_conversation($match), $top[self::TYPE], $top[self::STYLE] );
         case DOKU_LEXER_EXIT :
             $top=array_pop($this->stack);
             $this->current=end($this->stack);
-            // return same nested level as DOKU_LEXER_ENTER and type
-            return array($state, count($this->stack) -1, $top[self::TYPE]);
+            // return same nested level as DOKU_LEXER_ENTER and type and style
+            return array($state, count($this->stack) -1, $top[self::TYPE], $top[self::STYLE] );
         }
         return array(); //not reached
     }
@@ -249,7 +263,7 @@ class syntax_plugin_prompt extends DokuWiki_Syntax_Plugin {
         if($mode !== 'xhtml' && $mode !== 'odt' && $mode !== 'odt_pdf') {
             return false;
         }
-        list($state, $thing, $type) = $data;
+        list($state, $thing, $type, $style) = $data;
         switch ($state) {
         case DOKU_LEXER_ENTER :
             // $thing is nesting level here.
@@ -259,7 +273,7 @@ class syntax_plugin_prompt extends DokuWiki_Syntax_Plugin {
                 $this->genhtml = '';
             }
             else {
-                $this->genhtml .= "<div class='$type'>";
+                $this->genhtml .= "<div class='$type $style'>";
                 if( $mode != 'xhtml' ) // odt needs an additional CR. bug ?
                      $this->genhtml .= DOKU_LF;
             }
@@ -288,7 +302,7 @@ class syntax_plugin_prompt extends DokuWiki_Syntax_Plugin {
             // only close <pre> if we're closing the outermost <cli>
             if( 0 === $thing ) {
                 if( $mode == 'xhtml' ) {
-                    $renderer->doc .= "</p><pre class='cli $type'>";
+                    $renderer->doc .= "</p><pre class='cli $type $style'>";
                     $renderer->doc .= $this->genhtml;
                     $renderer->doc .= '</pre><p>';
                 }
@@ -346,11 +360,11 @@ class syntax_plugin_prompt extends DokuWiki_Syntax_Plugin {
      *
      * @author Schplurtz le Déboulonné <Schplurtz@laposte.net>
      * @param  $s             String        The string to transform
-     * @param  $is_comment_re Int           1 the re is going to match a comment, 0 otherwise
+     * @param  $is_comment_re Boolean       true if the re is going to match a comment.
      * @return String                       The regexp.
      */
-    function _toregexp( $s, $is_comment_re=0 ) {
-        if(preg_match('/^([\/=,;%@]).+(\1)$/', $s)) {
+    function _toregexp( $s, $is_comment_re=false ) {
+        if(preg_match('/^([\/=,;%@#]).+(\1)$/', $s)) {
             if( $is_comment_re )
                 $s = $s[0] . '(' . substr( $s, 1, -1 ) . ')' . $s[0];
             return $s;
@@ -493,34 +507,42 @@ class syntax_plugin_prompt extends DokuWiki_Syntax_Plugin {
     protected function _parseparams( $str ) {
         $toks=$this->_tokenize($str);
         $n=count($toks) ;
-        $values=array( 'prompt' => false, 'continue' => false, 'comment' => false, 'type' => false );
+        $values=array( 'prompt' => false, 'continue' => false, 'comment' => false,
+                       'type' => false, 'style' => '', );
 
+        // check tokens by triplet.
         for( $i = 0; $i < $n - 2; ++$i ) {
             if( $toks[$i + 1] === '=' ) {
                 $key=$this->_map($toks[$i]);
-                $values[$key]=$toks[$i+2];
+                if($key) {
+                    if( $values[$key] !== false) {
+                        msg( 'In &lt;cli ...>, value «'.hsc($toks[$i+2]).'» override previously defined '.hsc($key).' «'. hsc($values[$key]).'».', 2, '', '', MSG_USERS_ONLY );
+                    }
+                    $values[$key]=$toks[$i+2];
+                }
+                else {
+                    msg( 'Error, unknown attribute «' . hsc($toks[$i]) . '» in &lt;cli> parametre', -1, '', '', MSG_USERS_ONLY );
+                }
                 $i += 2;
             }
             else {
-                if( $values['type'] !== false ) {
-                    msg( 'In &lt;cli ...&gt;, «'.hsc($toks[$i]).'» override previously defined type «'. hsc($values['type']).'».', 2, '', '', MSG_USERS_ONLY );
-                }
-                $values['type']=$toks[$i];
+                // if not format X = Y, add current token to style.
+                $values['style'].=' '.$toks[$i];
             }
         }
-        // add 1 or 2 remaining tokens to type
-        if( $n ) for( ; $i < $n; ++$i ) {
-            if( $values['type'] !== false ) {
-                msg( 'In &lt;cli ...&gt;, «'.hsc($toks[$i]).'» override previously defined type «'. hsc($values['type']).'».', 2, '', '', MSG_USERS_ONLY );
-            }
-            $values['type']=$toks[$i];
+        // add 1 or 2 remaining tokens to style
+        for( ; $i < $n; ++$i ) {
+            $values['style'].=' '.$toks[$i];
         }
         return $values;
     }
+
     /**
      * check <cli param names and maps them to canonical values.
      *
      * @author       Schplurtz le Déboulonné <schplurtz@laposte.net>
+     * @return  Mixed    canonical attribute name or false if attr is unknown
+     *                   One of 'type', 'prompt', 'continue', 'comment'.
      */
     protected function _map( $s ) {
         if( $s == 'lang' || $s == 'language' || $s == 'type' || $s == 't' || $s == 'l' || $s == 'lng' )
@@ -531,29 +553,6 @@ class syntax_plugin_prompt extends DokuWiki_Syntax_Plugin {
             return 'continue';
         if( $s == 'comment' )
             return 'comment';
-        msg( 'Error, unknown word «' . hsc( $s ) . '» in &lt;cli&gt; parametre', -1, '', '', MSG_USERS_ONLY );
-        return 'unknown';
+        return false;
     }
-
-    /**
-     * expands tabs to spaces.
-     *
-     * Schplurtz says : bug warning : if $line contains ascii 7 (\a bell) and $nbspace
-     * is set to true, then existing \a will turn to &nbsp;
-     *
-     * @author dev-null-dweller https://stackoverflow.com/users/258674/dev-null-dweller
-     * @param   $line           String      The string with tabs to expand
-     * @param   $tab            Integer     tab length, default 4
-     * @param   $nbsp           Boolean     whether to convert spaces to '&nbsp;'. default is false.
-     * @return  String                      The string with expanded tabs
-     */
-    /*
-    protected function _tab2space($line, $tab = 4, $nbsp = FALSE) {
-        while (($t = mb_strpos($line,"\t")) !== FALSE) {
-            $preTab = $t?mb_substr($line, 0, $t):'';
-            $line = $preTab . str_repeat($nbsp?chr(7):' ', $tab-(mb_strlen($preTab)%$tab)) . mb_substr($line, $t+1);
-        }
-        return  $nbsp?str_replace($nbsp?chr(7):' ', '&nbsp;', $line):$line;
-    }
-    */
 }
