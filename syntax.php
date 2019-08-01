@@ -1,6 +1,6 @@
 <?php
 /**
- * DokuWiki Plugin prompt (Syntax Component)
+ * DokuWiki Plugin cli (Syntax Component)
  *
  * @license      GPL 2 (http://www.gnu.org/licenses/gpl.html)
  * @author       Schplurtz le Déboulonné <schplurtz@laposte.net>
@@ -12,7 +12,7 @@
 // must be run within Dokuwiki
 if (!defined('DOKU_INC')) die();
 
-class syntax_plugin_prompt extends DokuWiki_Syntax_Plugin {
+class syntax_plugin_cli extends DokuWiki_Syntax_Plugin {
 
     const PROMPT=0;
     const CONT=1;
@@ -105,7 +105,7 @@ class syntax_plugin_prompt extends DokuWiki_Syntax_Plugin {
             '|\\\\.' .                    /* escaped character */
             '|[^\'"\\\\>]|[(?:])*>\r?\n?'.
             '(?=.*?</cli>)'
-            ,$mode,'plugin_prompt');
+            ,$mode,'plugin_cli');
 
             /*
              * The [)]? and |[(?:] is to work around a bug in lexer.php
@@ -119,7 +119,7 @@ class syntax_plugin_prompt extends DokuWiki_Syntax_Plugin {
      * @author       Stephane Chazelas <stephane.chazelas@emerson.com>
      */
     function postConnect() {
-        $this->Lexer->addExitPattern('\r?\n?</cli>','plugin_prompt');
+        $this->Lexer->addExitPattern('\r?\n?</cli>','plugin_cli');
     }
 
     /**
