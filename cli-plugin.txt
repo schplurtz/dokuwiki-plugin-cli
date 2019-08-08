@@ -114,7 +114,7 @@ The full syntax:
   * //prompt// --- [optional] the prompt used by the CLI. See configuration below for the description of the syntax. If omitted, the default value is used.
   * //continue// --- [optional]. The continue prompt used by the CLI. See configuration below for the description of the syntax. If ommitted, the default value is used.  A continue prompt is an alternate prompt that can only happen **immediately after** a line containing a prompt, of any kind.\\ **NB**\\ //continue// can be abbreviated //cont//.
   * //comment// --- [optional] the comment used by the CLI. See configuration below for the description of the syntax. If omitted, the default value is used.
-  * //shortcut// --- [optional] This is the name of a shortcut, ie a predefined set of //prompt//, //continue// and //comment//. It is not an error to use an undefined shortcut. It simply has no effect. Shortcuts are also useful to customize the visual aspect of the session. See [[#Style]] below. Shortcuts are also used as classname in the html block.\\ **NB**\\ one may write ''type=shortcut'', or ''t=shortcut'', ''language=shortcut'', ''lang=shortcut'', ''lng=shortcut'', ''l=shortcut''.
+  * //shortcut// --- [optional] This is the name of a shortcut, ie a predefined set of //prompt//, //continue// and //comment//. It is not an error to use an undefined shortcut. It simply has no effect. Shortcuts are also useful to customize the visual aspect of the session since the shortcut name is added as classname in the html block.. See [[#Style]] below. \\ **NB**\\ one may write ''type=shortcut'', or ''t=shortcut'', ''language=shortcut'', ''lang=shortcut'', ''lng=shortcut'', ''l=shortcut''.
   * //class// --- [optional] Class to add to the html block. This allows to create all sorts of custom [[#style]]. 
 
 Each of the values may be enclosed in single (''%%'%%'') or double (''%%"%%'') quote if they have spaces or tabs in them.
@@ -187,7 +187,7 @@ When exporting a page to odt with the [[dw>plugin:odt|odt]] plugin, font colours
 
 ==== style ====
 
-You may customize the colours of the text and also the border, background, padding, margin, font etc... well, pretty much anything customizable with CSS. Where to create yor CSS files is documented in [[doku>devel:css#user_styles|user styles]]. This example should work with most dokuwiki [[dw>template|templates]].
+You may customize the colours of the text and also the border, background, padding, margin, font etc... well, pretty much anything customizable with CSS. Where to create your CSS files is documented in [[doku>devel:css#user_styles|user styles]]. This example should work with most dokuwiki [[dw>template|templates]].
 
 <code css userstyle.css>
 body div.dokuwiki  pre.cli {
@@ -353,5 +353,4 @@ Several improvements suggested by Stephane Chazelas and Andy Webber.
 
 More than 12 years after its creation, this plugin was
 modernized by Schplurtz le Déboulonné who added a few features.
-
 
