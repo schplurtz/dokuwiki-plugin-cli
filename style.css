@@ -1,4 +1,4 @@
-/* plugin:prompt */
+/* plugin:cli */
 .cli_output {
 	color: #171793;
 }
@@ -7,11 +7,11 @@
 	color: #d36339;
 }
 
-.cli_prompt {
+.cli_cli {
 	color: #2a8b6c;
 }
 
 .cli_command {
 	color: #df1717;
 }
-/* end plugin:prompt */
+/* end plugin:cli */

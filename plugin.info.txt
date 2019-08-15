@@ -1,6 +1,6 @@
 # General Plugin Info do not edit
 
-base   prompt
+base   cli
 author Schplurtz le Déboulonné
 email  Scplurtz@laposte.net
 date   2019-07-13
