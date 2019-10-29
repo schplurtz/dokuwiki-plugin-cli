@@ -137,7 +137,7 @@ class syntax_plugin_cli extends DokuWiki_Syntax_Plugin {
         case DOKU_LEXER_ENTER :
             $this->_init();
             $level=count($this->stack) - 1;
-            $args = substr(rtrim($match), 4, -1); // strip '<cli' and '>'
+            $args = substr(rtrim($match), 4, -1); // strip '<cli' and '>EOL?'
             $params=$this->_parseparams($args);
             $type=$params['type'];
             $style=$params['style'];
@@ -487,6 +487,8 @@ class syntax_plugin_cli extends DokuWiki_Syntax_Plugin {
                 msg( 'In &lt;cli ...>, ignored malformed text «'.hsc($tok).'».', 2, '', '', MSG_USERS_ONLY );
         }
 
+        if($this->getConf('debug'))
+          msg( "line <pre>«".hsc($str)."»</pre>parsed as :<pre>".hsc(print_r($toks,1))."</pre>" );
         return $toks;
     }
 
@@ -505,6 +507,8 @@ class syntax_plugin_cli extends DokuWiki_Syntax_Plugin {
      * @return array The associative array of tokens
      */
     protected function _parseparams( $str ) {
+        if($this->getConf('debug'))
+          msg('_parseparams calling _tokenize("'.hsc($str).'")', 1);
         $toks=$this->_tokenize($str);
         $n=count($toks) ;
         $values=array( 'prompt' => false, 'continue' => false, 'comment' => false,

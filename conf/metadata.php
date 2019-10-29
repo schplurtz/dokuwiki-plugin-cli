@@ -15,3 +15,4 @@ $meta['namedcomment']   = array( '' );
 $meta['odtbackground']  = array( 'string' );
 $meta['odtborderwidth'] = array( 'string' );
 $meta['odtbordercolor'] = array( 'string' );
+$meta['debug']          = array( 'onoff' );

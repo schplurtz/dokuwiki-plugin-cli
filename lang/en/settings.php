@@ -15,6 +15,6 @@ $lang['namedcomment']='named comment list, one per line, using this format : "na
 $lang['odtbackground']  = 'When exporting pages to ODT or PDF format with the <a href="https://www.dokuwiki.org/plugin:odt">odt</a> plugin, background color of the <tt>&lt;cli></tt> blocks. The default value <tt>#f7f9fa</tt> is the same as the one used by the <tt>&lt;code></tt> blocs.';
 $lang['odtborderwidth'] = 'When exporting pages to ODT or PDF format with the <a href="https://www.dokuwiki.org/plugin:odt">odt</a> plugin, width in a CSS <a href="https://developer.mozilla.org/en-US/docs/Web/CSS/length">unit length</a>, usually point «pt», of the border of the <tt>&lt;cli></tt> blocs. Default value : 0.06pt';
 $lang['odtbordercolor'] = 'When exporting pages to ODT or PDF format with the <a href="https://www.dokuwiki.org/plugin:odt">odt</a> plugin, bordercolor of the <tt>&lt;cli></tt> blocs. Default is #8cacbb';
-
+$lang['debug'] = 'When on, the recognised &lt;cli> parameters are printed as message when saving or previewing and edited page.<br>This is mainly used by the dev, but may help you too on occasion.';
 
 //Setup VIM: ex: et ts=4 :
