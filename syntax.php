@@ -377,12 +377,14 @@ class syntax_plugin_cli extends DokuWiki_Syntax_Plugin {
     }
 
     /**
-     * tokenize a string.
+     * tokenize a string. Could'nt find the correct set of regexps, So I use
+     * a DFA.
      *
      * recognize bare word, =, \-escaped char, and single or double quoted strings.
      * ie «a\ b="foo\"bar"» produces "a b", '=', 'foo"bar'.
      * This function implements the following DFA. See dot(1) if you
-     * need to visualize it.
+     * need to visualize it. Or trust me and run something like that :
+     * sed -ne '/digr''aph/,/}/s/ *.//p' syntax.php | dot -Tpng >/tmp/graph.png
      * digraph {
      *   node [shape=circle];
      *   0 -> 0 [label="\\s"]
@@ -410,14 +412,14 @@ class syntax_plugin_cli extends DokuWiki_Syntax_Plugin {
      *   9 -> 0 [label="' [A]"]
      *   9 -> 3 [label=". [+]"]
      * 
-     *   5 -> 6 [label="\\"]
+     *   5 -> 6 [label="\\ [+]"]
      *   5 -> 0 [label="\\s [A]"]
      *   5 -> 7 [label="= [A+]"]
      *   5 -> 1 [label="\" [A]"]
      *   5 -> 3 [label="' [A]"]
      *   5 -> 5 [label=". [+]"]
      * 
-     *   6 -> 5 [label="[\"' =\\] [-]"]
+     *   6 -> 5 [label="[\"' =\\>] [-]"]
      *   6 -> 5 [label=". [+]"]
      * 
      *   7 -> 0 [label="\\s [A]"]
@@ -433,27 +435,24 @@ class syntax_plugin_cli extends DokuWiki_Syntax_Plugin {
      * @return String[] An array of tokens
      */
     protected function _tokenize( $str ) {
-        $trs=array(
+        $trs=array( //array ( current chart > new state,... )
             0 => array( ' ' => 0, "\t" => 0, '"' => 1, "'" => 3, '\\' => 6, '=' => 7, 'def' => 5 ),
             1 => array( '\\' => 2, '"'  => 0, 'def' => 1 ),
-            //2 => array( '"'  => 1, "\\" => 1, 'def' => 1 ),
             2 => array( 'def' => 1 ),
             3 => array( '\\' => 4, "'"  => 0, 'def' => 3 ),
-            //4 => array( "'"  => 3, "\\" => 3, 'def' => 3 ),
             4 => array( 'def' => 3 ),
             5 => array( '\\' => 6, ' '  => 0, "\t"  => 0, '=' => 7, '"' => 1, "'" => 3, 'def' => 5),
-            //6 => array( '"' => 5, "'" => 5, ' ' => 5, '=' => 5, "\\" => 5, 'def' => 5 ),
             6 => array( 'def' => 5 ),
             7 => array( ' ' => 0, "\t" => 0, '"' => 1, "'" => 3, "\\" => 6, 'def' => 5),
         );
-        $acs=array(
+        $acs=array( // new state => action OR new state => array ( char => action, char => action... )
             0 => array( 6 => '+', 7 => '+', 5 => '+',),
             1 => array( 2 => '+', 0 => 'A', 1 => '+',),
             2 => array( 1 => array( '"' => '-', "\\" => '-', 'def' => '+')),
             3 => array( 4 => '+', 0 => 'A', 3 => '+',),
             4 => array( 3 => array( "'" => '-', "\\" => '-', 'def' => '+',)),
-            5 => array( 0 => 'A', 7 => 'A+', 1 => 'A', 3 => 'A', 5 => '+',),
-            6 => array( 5 => array( '"' => '-', "'" => '-', ' ' => '-', '=' => '-', "\\" => '-', 'def' =>'+'),),
+            5 => array( 6 => '+', 0 => 'A', 7 => 'A+', 1 => 'A', 3 => 'A', 5 => '+',),
+            6 => array( 5 => array( '"' => '-', "'" => '-', ' ' => '-', '=' => '-', "\\" => '-', '>' => '-', 'def' =>'+'),),
             7 => array( 0 => 'A', 1 => 'A', 3 => 'A', 6 => 'A+', 5 => 'A+',),
         );
 
@@ -476,10 +475,6 @@ class syntax_plugin_cli extends DokuWiki_Syntax_Plugin {
             }
             $state=$to;
         }
-        /*
-        if($tok != '' && ($state == 0 || $state == 5 || $state == 7))
-            $toks[] = $tok;
-        */
         if($tok != '') {
             if ($state == 0 || $state == 5 || $state == 7)
                 $toks[] = $tok;

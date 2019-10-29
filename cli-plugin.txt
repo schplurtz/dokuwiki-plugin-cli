@@ -120,7 +120,7 @@ The full syntax:
 Each of the values may be enclosed in single (''%%'%%'') or double (''%%"%%'') quote if they have spaces or tabs in them.
 Within single quotes, «\\» stands for «\» and «\'%%%%» stands for «%%'%%».
 Within double quotes, «\\» stands for «\» and «%%\"%%» stands for «%%"%%».
-In unquoted strings, the following characters must be \-escaped to be part of the string : «"», «%%'%%», « » (space), «=» and «\».
+In unquoted strings, the following characters must be \-escaped to be part of the string : «"», «%%'%%», « » (space), «=»,  «\» and «>».
 
 There may be spaces around the equal sign.
 The following examples are all equivalent :
@@ -316,12 +316,12 @@ Will produce this html code
 
 === Change Log ===
 
-{{rss>https://github.com/schplurtz/dokuwiki-plugin-prompt/commits/master.atom date}}
+{{rss>https://github.com/schplurtz/dokuwiki-plugin-cli/commits/master.atom date}}
 
 
 === ToDo/Wish List ===
 
-Please, create an issue on [[https://github.com/schplurtz/dokuwiki-plugin-prompt/issues|github]]
+Please, create an issue on [[https://github.com/schplurtz/dokuwiki-plugin-cli/issues|github]]
 
 ===== FAQ =====
 
