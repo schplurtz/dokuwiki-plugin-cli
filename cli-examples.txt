@@ -70,7 +70,7 @@ drwxr-xr-x 4 user user  4096 Dec 22 22:10 lang
 -rw-r--r-- 1 user user   184 Dec 28 02:13 style.css
 -rw-rw-rw- 1 user user 18822 Dec 28 06:11 syntax.php
 user@host:~/somedir $ dosemu
-
+<cli type=dos>
 (C) Copyright 1995-2006 Pasquale J. Villani and The FreeDOS Project.
 D: = LINUX\FS/HOME/USER attrib = READ/WRITE
 E: = LINUX\FS/MEDIA/CDROM CDROM:1 attrib = READ ONLY
