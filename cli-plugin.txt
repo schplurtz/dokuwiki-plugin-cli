@@ -140,7 +140,7 @@ Default values match most unix shells use.
 
 The plugin has 9 configuration settings. The first 3 are the default prompts and comment marker to use.
 
-  * //prompt// is a either a regexp((enclosed in <<''/''>>, <<''=''>>, <<'',''>>, <<'';''>>, <<''%''>>, <<''@''>>, <<''=''>>, or <<''#''>>)) that describe the prompt your CLI uses, or a string that should be equal the last char or chars of the prompt. When a regexp is used, it must match from the start of line to the last char considered part of the prompt. Ie ''%%/^.*?> /%%'' is correct, but <del>''%%/> /%%''</del> is not. Note that ''"> "'' is correct as it is a string and not a regexp.
+  * //prompt// is a either a regexp((enclosed in <<''/''>>, <<''|''>>, <<''=''>>, <<'',''>>, <<'';''>>, <<''%''>>, <<''@''>>, <<''=''>>, or <<''#''>>)) that describe the prompt your CLI uses, or a string that should be equal the last char or chars of the prompt. When a regexp is used, it must match from the start of line to the last char considered part of the prompt. Ie ''%%/^.*?> /%%'' is correct, but <del>''%%/> /%%''</del> is not. Note that ''"> "'' is correct as it is a string and not a regexp.
   * //continue// is a description of the continue prompt. It uses the same syntax as //prompt//.
   * //comment// is a description of the comment marker. Also a string or regexp. It is matched only to the part of each transcript lines **after** the prompt. For this regexp, the start of line is the first non-prompt char of a command line.
 

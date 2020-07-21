@@ -364,7 +364,7 @@ class syntax_plugin_cli extends DokuWiki_Syntax_Plugin {
      * @return String                       The regexp.
      */
     function _toregexp( $s, $is_comment_re=false ) {
-        if(preg_match('/^([\/=,;%@#]).+(\1)$/', $s)) {
+        if(preg_match('/^([\/|=,;%@#]).+(\1)$/', $s)) {
             if( $is_comment_re )
                 $s = $s[0] . '(' . substr( $s, 1, -1 ) . ')' . $s[0];
             return $s;
