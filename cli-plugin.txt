@@ -9,7 +9,7 @@ lastupdate : 2019-07-15
 compatible : elenor of tsort, detritus, frusterick manners, greebo
 depends    : 
 conflicts  : 
-similar    : cli
+similar    : 
 tags       : code, cli, syntax, highlighting
 downloadurl: https://github.com/schplurtz/dokuwiki-plugin-cli/zipball/master
 bugtracker : https://github.com/schplurtz/dokuwiki-plugin-cli/issues
@@ -328,7 +328,7 @@ Please, create an issue on [[https://github.com/schplurtz/dokuwiki-plugin-cli/is
 
 ===== Discussion =====
 
-Please, discuss on the [[https://forum.dokuwiki.org/forum|forum]]
+Please, discuss on the [[https://forum.dokuwiki.org/|forum]]
 
 
 
